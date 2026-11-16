@@ -18,10 +18,9 @@ app.get("/", (_req, res) => {
   const indexPath = path.join(publicDir, "index.html");
   let html = fs.readFileSync(indexPath, "utf8");
 
-  // Ces remplacements sont dans le script principal : hurt, toast, parts et les
-  // variables de partie sont donc accessibles dans leur portée lexicale.
+  // Les références aux variables et fonctions du jeu sont dans la portée lexicale.
   const apiMarker = "start, update, get zone()";
-  const apiBridge = "start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts: () => parts, get zone()";
+  const apiBridge = "start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts: () => parts, grenadeHitObs: hitObs, get zone()";
   if (html.includes(apiMarker)) {
     html = html.replace(apiMarker, apiBridge);
   } else {
@@ -42,7 +41,7 @@ app.get("/", (_req, res) => {
   if (!html.includes(contextMarker)) {
     html = html.replace("</script>", "cv.addEventListener('contextmenu', e => e.preventDefault());\n</script>");
   }
-  html += '\n<script src="/grenades.js?v=3"></script>\n';
+  html += '\n<script src="/grenades.js?v=4"></script>\n';
   res.type("html").send(html);
 });
 
