@@ -11,41 +11,38 @@ const io = new Server(httpServer);
 const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, "public");
 
+// Le HTML actuel est un fragment (pas de balises <html>/<body>). On le transforme
+// côté serveur afin d'exposer les fonctions du jeu depuis sa propre IIFE et de
+// connecter le clic droit au module de grenades.
 app.get("/", (_req, res) => {
   const indexPath = path.join(publicDir, "index.html");
   let html = fs.readFileSync(indexPath, "utf8");
 
-  const bridgeScript = `
-  <script>
-    (() => {
-      const api = window.__zm || {};
-      window.__zm = {
-        get G() { return G; },
-        get ents() { return ents; },
-        get obs() { return obs; },
-        get blds() { return blds; },
-        get parts() { return parts; },
-        grenadeToast: toast,
-        grenadeHurt: hurt,
-        grenadeGetParts: () => parts,
-        get zone() { return zone; }
-      };
-    })();
-  </script>
-  `;
-
-  if (html.includes("</body>")) {
-    html = html.replace("</body>", `${bridgeScript}\n<script src=\"/grenades.js?v=2\"></script>\n</body>`);
+  // Ces remplacements sont dans le script principal : hurt, toast, parts et les
+  // variables de partie sont donc accessibles dans leur portée lexicale.
+  const apiMarker = "start, update, get zone()";
+  const apiBridge = "start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts: () => parts, get zone()";
+  if (html.includes(apiMarker)) {
+    html = html.replace(apiMarker, apiBridge);
   } else {
-    html += `${bridgeScript}\n<script src=\"/grenades.js?v=2\"></script>`;
+    console.error("[Zone Morte] Impossible d'ajouter les fonctions grenade dans index.html");
   }
 
+  // Le canvas conserve le clic gauche pour tirer et transmet le clic droit aux grenades.
   const mouseMarker = "} else { M.down = true; M.x = x; M.y = y; }";
-  const mouseBridge = "} else if (e.button === 2) { e.preventDefault(); window.dispatchEvent(new CustomEvent('zone-morte-grenade', { detail: { x, y } })); } else { M.down = true; M.x = x; M.y = y; }";
+  const mouseBridge = "} else if (e.button === 2) { e.preventDefault(); M.down = false; window.dispatchEvent(new CustomEvent('zone-morte-grenade', { detail: { x, y } })); } else { M.down = true; M.x = x; M.y = y; }";
   if (html.includes(mouseMarker)) {
     html = html.replace(mouseMarker, mouseBridge);
+  } else {
+    console.error("[Zone Morte] Impossible de relier le clic droit aux grenades dans index.html");
   }
 
+  // Empêche le menu contextuel natif sur le canvas et charge le module après l'API.
+  const contextMarker = "cv.addEventListener('contextmenu', e => e.preventDefault());";
+  if (!html.includes(contextMarker)) {
+    html = html.replace("</script>", "cv.addEventListener('contextmenu', e => e.preventDefault());\n</script>");
+  }
+  html += '\n<script src="/grenades.js?v=3"></script>\n';
   res.type("html").send(html);
 });
 
@@ -55,6 +52,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "jeu-multijoueur" });
 });
 
+// Structure : roomId -> Map(socketId -> données du joueur)
 const rooms = new Map();
 
 function cleanRoomId(value) {
@@ -74,11 +72,8 @@ io.on("connection", (socket) => {
 
   socket.on("join-room", (rawRoomId, callback) => {
     const roomId = cleanRoomId(rawRoomId);
-
     if (!roomId) {
-      if (typeof callback === "function") {
-        callback({ ok: false, error: "Identifiant de salon invalide." });
-      }
+      if (typeof callback === "function") callback({ ok: false, error: "Identifiant de salon invalide." });
       return;
     }
 
@@ -91,13 +86,8 @@ io.on("connection", (socket) => {
     socket.join(roomId);
 
     if (typeof callback === "function") {
-      callback({
-        ok: true,
-        playerId: socket.id,
-        players: getRoomPlayers(roomId)
-      });
+      callback({ ok: true, playerId: socket.id, players: getRoomPlayers(roomId) });
     }
-
     socket.to(roomId).emit("player-joined", player);
   });
 
@@ -111,7 +101,6 @@ io.on("connection", (socket) => {
     const room = rooms.get(currentRoom);
     const player = room && room.get(socket.id);
     if (!player) return;
-
     player.x = x;
     player.y = y;
     socket.to(currentRoom).emit("player-moved", { id: socket.id, x, y });
@@ -123,7 +112,6 @@ io.on("connection", (socket) => {
     if (!currentRoom) return;
     const roomId = currentRoom;
     const room = rooms.get(roomId);
-
     socket.leave(roomId);
     if (room) {
       room.delete(socket.id);
