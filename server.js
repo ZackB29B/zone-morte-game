@@ -1,5 +1,7 @@
 const express = require("express");
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const app = express();
@@ -7,9 +9,35 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer);
 
 const PORT = process.env.PORT || 3000;
+const publicDir = path.join(__dirname, "public");
 
-// Sert les fichiers du jeu placés dans le dossier "public".
-app.use(express.static("public"));
+// Injecte le pont de gameplay et le module des grenades dans la page du jeu.
+// Cette route doit précéder express.static pour remplacer index.html.
+app.get("/", (_req, res) => {
+  const indexPath = path.join(publicDir, "index.html");
+  let html = fs.readFileSync(indexPath, "utf8");
+
+  const apiMarker = "start, update, get zone()";
+  const apiBridge = "start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts() { return parts; }, get zone()";
+  if (html.includes(apiMarker)) html = html.replace(apiMarker, apiBridge);
+
+  // Le bouton droit ne doit pas activer le tir : il déclenche le lancer de grenade.
+  const mouseMarker = "} else { M.down = true; M.x = x; M.y = y; }";
+  const mouseBridge = "} else if (e.button === 2) { M.down = false; window.dispatchEvent(new CustomEvent('zone-morte-grenade', { detail: { x, y } })); } else { M.down = true; M.x = x; M.y = y; }";
+  if (html.includes(mouseMarker)) html = html.replace(mouseMarker, mouseBridge);
+
+  // Les fumigènes masquent les bots dans leur ligne de vue.
+  html = html.replace(
+    "if (d < bd && los(b, o)) {",
+    "if (d < bd && los(b, o) && !(window.grenadeSmokeBlocks && window.grenadeSmokeBlocks(b, o))) {"
+  );
+
+  html = html.replace("</body>", '<script src="/grenades.js"></script>\n</body>');
+  res.type("html").send(html);
+});
+
+// Sert les fichiers statiques après la route de la page principale.
+app.use(express.static(publicDir));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "jeu-multijoueur" });
