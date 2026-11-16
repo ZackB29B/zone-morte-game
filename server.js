@@ -85,7 +85,6 @@ app.post("/api/auth/register", async (req, res) => {
 
     const salt = crypto.randomBytes(16);
     const passwordHash = await scrypt(password, salt, 64);
-    // Recontrôle après scrypt asynchrone pour éviter deux inscriptions simultanées.
     if (users.has(usernameKey)) return res.status(409).json({ error: "Ce pseudo est déjà utilisé." });
     users.set(usernameKey, { username, usernameKey, salt: salt.toString("hex"), passwordHash: passwordHash.toString("hex") });
     await persistUsers();
