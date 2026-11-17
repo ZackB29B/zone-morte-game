@@ -171,8 +171,7 @@ app.get("/", (_req, res) => {
   const apiMarker = "start, update, get zone()";
   const apiBridge = "start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts: () => parts, grenadeHitObs: hitObs, get zone()";
   if (html.includes(apiMarker)) html = html.replace(apiMarker, apiBridge);
-  // Désactivation du remplacement automatique risqué pour la souris
-  const mouseMarker = "NEVER_MATCH";
+  const mouseMarker = "} else { M.down = true; M.x = x; M.y = y; }";
   const mouseBridge = "} else if (e.button === 2) { e.preventDefault(); M.down = false; window.dispatchEvent(new CustomEvent('zone-morte-grenade', { detail: { x, y } })); } else { M.down = true; M.x = x; M.y = y; }";
   if (html.includes(mouseMarker)) html = html.replace(mouseMarker, mouseBridge);
   if (!html.includes("cv.addEventListener('contextmenu', e => e.preventDefault());")) {
