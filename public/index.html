@@ -833,14 +833,9 @@
     if (l.k === 'armor') { if (p.ar >= 100) return false; p.ar = Math.min(100, p.ar + 50); toast("+ Plaque d'armure"); return true; }
     if (l.k === 'ammo') { for (const k in p.ws) p.ws[k].res = Math.min(WP[k].mag * 6, p.ws[k].res + WP[k].mag); toast('+ Munitions'); return true; }
     if (l.k === 'grenade') {
-      if (typeof inventory !== 'undefined' && typeof types !== 'undefined') {
-        const kArr = Object.keys(types);
-        const rk = kArr[Math.floor(Math.random() * kArr.length)];
-        inventory[rk] = Math.min(3, (inventory[rk] || 0) + 1);
-        if (typeof setHud === 'function') setHud();
-        toast('+ 1 Grenade (' + (types[rk]?.label || rk) + ')');
-        return true;
-      }
+      p.grenades = (p.grenades || 0) + 1;
+      toast('+ 1 Grenade');
+      return true;
     }
     if (p.ws[l.k]) { p.ws[l.k].res = Math.min(WP[l.k].mag * 6, p.ws[l.k].res + WP[l.k].mag); toast('+ Munitions ' + WP[l.k].n); return true; }
     p.ws[l.k] = { mag: WP[l.k].mag, res: WP[l.k].mag * 2 };
@@ -1225,26 +1220,57 @@
     // balles
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
+      if (!b) { bullets.splice(i, 1); continue; }
+      if (isNaN(b.vx) || isNaN(b.vy) || (b.vx === 0 && b.vy === 0)) {
+        bullets.splice(i, 1);
+        continue;
+      }
       let dead = false;
-      const ns = Math.max(2, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 5));
-      for (let s = 0; s < ns && !dead; s++) {
-        b.x += b.vx * dt / ns; b.y += b.vy * dt / ns;
-        const ho = hitObs(b.x, b.y, b.lv);
-        if (ho || b.x < 0 || b.y < 0 || b.x > MAP || b.y > MAP) {
-          if (ho && ho.door && !b.vis) { ho.hp -= b.dmg; if (ho.hp <= 0) breakDoor(ho, b.own); }
-          dead = true; break;
+      const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 10));
+      const sdx = (b.vx * dt) / steps;
+      const sdy = (b.vy * dt) / steps;
+
+      for (let s = 0; s < steps && !dead; s++) {
+        b.x += sdx;
+        b.y += sdy;
+
+        // Limites de la carte
+        if (b.x < 0 || b.y < 0 || b.x > MAP || b.y > MAP) {
+          dead = true;
+          break;
         }
-        for (const e of (b.vis ? [] : ents)) {
-          if (!e.alive || e === b.own || (e.lv || 0) !== b.lv || (b.lv && e.bi !== b.own.bi)) continue;
-          if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 2) ** 2) {
-            hurt(e, b.dmg, b.own); dead = true;
-            for (let k = 0; k < 4; k++) parts.push({ x: b.x, y: b.y, vx: rnd(-90, 90), vy: rnd(-90, 90), life: rnd(.15, .35), col: '#e7e1d3' });
-            break;
+
+        // Obstacles
+        const ho = hitObs(b.x, b.y, b.lv);
+        if (ho) {
+          if (ho.door && !b.vis) {
+            ho.hp -= (b.dmg || 15);
+            if (ho.hp <= 0) breakDoor(ho, b.own);
+          }
+          dead = true;
+          break;
+        }
+
+        // Entités (uniquement pour les balles non visuelles ou locales)
+        if (!b.vis) {
+          for (const e of ents) {
+            if (!e.alive || e === b.own || (e.lv || 0) !== (b.lv || 0) || (b.lv && e.bi !== b.own.bi)) continue;
+            if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 4) ** 2) {
+              hurt(e, b.dmg, b.own);
+              dead = true;
+              for (let k = 0; k < 4; k++) {
+                parts.push({ x: b.x, y: b.y, vx: rnd(-90, 90), vy: rnd(-90, 90), life: rnd(.15, .35), col: '#e7e1d3' });
+              }
+              break;
+            }
           }
         }
       }
+
       b.life -= dt;
-      if (dead || b.life <= 0) bullets.splice(i, 1);
+      if (dead || b.life <= 0) {
+        bullets.splice(i, 1);
+      }
     }
     for (let i = parts.length - 1; i >= 0; i--) {
       const q = parts[i]; q.x += q.vx * dt; q.y += q.vy * dt; q.life -= dt;
