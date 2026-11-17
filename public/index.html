@@ -833,8 +833,8 @@
     if (l.k === 'armor') { if (p.ar >= 100) return false; p.ar = Math.min(100, p.ar + 50); toast("+ Plaque d'armure"); return true; }
     if (l.k === 'ammo') { for (const k in p.ws) p.ws[k].res = Math.min(WP[k].mag * 6, p.ws[k].res + WP[k].mag); toast('+ Munitions'); return true; }
     if (l.k === 'grenade') {
-      if (typeof inventory !== 'undefined') {
-        const kArr = Object.keys(inventory);
+      if (typeof inventory !== 'undefined' && typeof types !== 'undefined') {
+        const kArr = Object.keys(types);
         const rk = kArr[Math.floor(Math.random() * kArr.length)];
         inventory[rk] = Math.min(3, (inventory[rk] || 0) + 1);
         if (typeof setHud === 'function') setHud();
