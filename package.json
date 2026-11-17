@@ -2,11 +2,10 @@
   "name": "jeu-multijoueur-render",
   "version": "1.0.0",
   "private": true,
-  "description": "Serveur Node.js de base pour un jeu multijoueur en temps réel",
+  "description": "Serveur Node.js de base pour un jeu multijoueur en temps r\u00e9el",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=20"
