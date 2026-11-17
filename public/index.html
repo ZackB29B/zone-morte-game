@@ -1667,15 +1667,38 @@
   let last = performance.now();
   function loop(now) {
     try {
-      const dt = Math.min(.05, (now - last) / 1000); last = now;
+      const dt = Math.min(.05, (now - last) / 1000); 
+      last = now;
       if (G.state === 'play') {
-      if (ONLINE && NET.cd > 0) { NET.cd -= dt; $('ncount').hidden = false; $('ncount').textContent = 'Départ dans ' + Math.max(1, Math.ceil(NET.cd)); netStep(dt); }
-      else { if (!$('ncount').hidden) $('ncount').hidden = true; update(dt); }
-    }
-    draw();
-      if ((G.hudT -= dt) <= 0) { G.hudT = .08; hud(); }
+        try {
+          if (ONLINE && NET.cd > 0) { 
+            NET.cd -= dt; 
+            $('ncount').hidden = false; 
+            $('ncount').textContent = 'Départ dans ' + Math.max(1, Math.ceil(NET.cd)); 
+            netStep(dt); 
+          } else { 
+            if (!$('ncount').hidden) $('ncount').hidden = true; 
+            update(dt); 
+          }
+        } catch (updateErr) {
+          console.error("Erreur isolée dans update/netStep:", updateErr);
+        }
+      }
+      try {
+        draw();
+      } catch (drawErr) {
+        console.error("Erreur isolée dans draw:", drawErr);
+      }
+      try {
+        if ((G.hudT -= dt) <= 0) { 
+          G.hudT = .08; 
+          hud(); 
+        }
+      } catch (hudErr) {
+        // ignore hud errors
+      }
     } catch (err) {
-      console.error("Anti-freeze recovery:", err);
+      console.error("Anti-freeze global recovery active:", err);
     }
     requestAnimationFrame(loop);
   }
