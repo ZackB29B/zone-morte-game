@@ -1,0 +1,265 @@
+<title>Zone Morte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Layout: plein écran. Canvas de jeu au fond, HUD posé dessus, écrans de menu en calque. */
+  :root {
+    --ash: #0c0e0f;
+    --iron: #1a1f22;
+    --steel: #3b454b;
+    --bone: #e7e1d3;
+    --brass: #d4a537;
+    --rust: #b5473d;
+    --ice: #6fc3d9;
+    --void: #a35bd6;
+    --good: #6fbf73;
+    --display: "Teko", "Arial Narrow", Impact, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--ash);
+    color: var(--bone);
+    font-family: var(--mono);
+    font-size: 13px;
+    overflow: hidden;
+  }
+  #stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--ash); }
+  #c { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+
+  .hud { position: absolute; pointer-events: none; text-transform: uppercase; letter-spacing: .08em; }
+  .label { font-size: 10px; color: var(--steel); letter-spacing: .16em; }
+
+  #status { left: 16px; bottom: 16px; width: min(300px, calc(100% - 32px)); display: grid; gap: 10px; }
+  .bar { height: 8px; background: var(--iron); border: 1px solid var(--steel); }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--good); transition: width .12s linear; }
+  .bar.ar > i { background: var(--ice); width: 0; }
+  .bar.low > i { background: var(--rust); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .row b { font-weight: 600; color: var(--bone); font-variant-numeric: tabular-nums; }
+  #weapon { font-family: var(--display); font-size: 34px; line-height: 1; color: var(--brass); letter-spacing: .04em; }
+  #ammo { font-family: var(--display); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+  #ammo small { font-size: 20px; color: var(--steel); }
+  #reload { color: var(--rust); font-size: 11px; height: 14px; }
+  #slots { display: flex; gap: 6px; }
+  .slot { border: 1px solid var(--steel); padding: 2px 8px; color: var(--steel); font-size: 11px; }
+  .slot.own { color: var(--bone); border-color: var(--bone); }
+  .slot.on { background: var(--brass); color: var(--ash); border-color: var(--brass); }
+
+  #zone { top: 16px; left: 50%; transform: translateX(-50%); text-align: center; background: rgba(12,14,15,.8); border: 1px solid var(--void); padding: 6px 16px; max-width: calc(100% - 32px); }
+  #zone b { font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: .06em; color: var(--bone); font-variant-numeric: tabular-nums; }
+  #zone.shrink { border-color: var(--rust); }
+  #zone.shrink b { color: var(--rust); }
+
+  #tally { top: 16px; right: 16px; text-align: right; display: grid; gap: 2px; }
+  #tally .big { font-family: var(--display); font-size: 40px; line-height: 1; color: var(--bone); font-variant-numeric: tabular-nums; }
+  #feed { display: grid; gap: 3px; margin-top: 10px; justify-items: end; font-size: 11px; }
+  #feed div { background: rgba(12,14,15,.75); padding: 2px 8px; border-right: 2px solid var(--steel); animation: fade 5s forwards; }
+  #feed div.me { border-right-color: var(--brass); color: var(--brass); }
+  @keyframes fade { 0%, 80% { opacity: 1 } 100% { opacity: 0 } }
+
+  #mmwrap { right: 16px; bottom: 16px; border: 1px solid var(--steel); background: rgba(12,14,15,.7); }
+  #mm { display: block; width: 150px; height: 150px; }
+
+  #toast { left: 50%; bottom: 96px; transform: translateX(-50%); color: var(--brass); font-size: 12px; opacity: 0; transition: opacity .25s; white-space: nowrap; }
+  #toast.show { opacity: 1; }
+
+  .screen { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(ellipse at center, rgba(12,14,15,.72), rgba(12,14,15,.94)); overflow: hidden; }
+  .screen[hidden] { display: none; }
+  .card { width: min(520px, 100%); display: grid; gap: 22px; }
+  .tag { color: var(--void); letter-spacing: .3em; font-size: 11px; text-transform: uppercase; }
+  h1 { font-family: var(--display); font-weight: 700; font-size: clamp(64px, 16vw, 120px); line-height: .85; letter-spacing: .02em; text-transform: uppercase; text-wrap: balance; }
+  h1 span { color: var(--brass); }
+  .lead { color: var(--bone); opacity: .8; line-height: 1.55; max-width: 46ch; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; border-top: 1px solid var(--steel); padding-top: 14px; }
+  dt { color: var(--brass); }
+  dd { color: var(--bone); opacity: .85; }
+  button { font: inherit; font-family: var(--display); font-size: 28px; letter-spacing: .14em; text-transform: uppercase; color: var(--ash); background: var(--brass); border: 0; padding: 8px 28px; cursor: pointer; }
+  button:hover { background: var(--bone); }
+  button:focus-visible { outline: 2px solid var(--bone); outline-offset: 3px; }
+  .stats { display: flex; gap: 28px; flex-wrap: wrap; border-top: 1px solid var(--steel); border-bottom: 1px solid var(--steel); padding: 14px 0; }
+  .stats b { display: block; font-family: var(--display); font-size: 44px; font-weight: 600; line-height: 1; color: var(--bone); font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 640px) {
+    #mm { width: 104px; height: 104px; }
+    #status { bottom: 132px; }
+    #tally .big { font-size: 30px; }
+    #toast { bottom: 250px; }
+  }
+  #tbtns { display: none; position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); gap: 10px; }
+  .tb { font-size: 20px; padding: 10px 18px 8px; background: rgba(12,14,15,.7); color: var(--bone); border: 1px solid var(--steel); justify-self: auto; }
+  .tb:hover { background: rgba(12,14,15,.7); }
+  .touchhint { display: block; }
+  .modes { display: flex; gap: 12px; flex-wrap: wrap; }
+  body.touch #tbtns { display: flex; }
+  body.touch .touchhint { display: block; }
+  body.touch #stage { touch-action: none; }
+  body.touch #zone { left: 12px; top: 12px; transform: none; text-align: left; padding: 4px 12px; }
+  body.touch #zone b { font-size: 22px; }
+  body.touch #tally { top: 12px; right: 12px; }
+  body.touch #feed, body.touch #slots, body.touch #status .label, body.touch #hpn, body.touch #arn, body.touch #stn { display: none; }
+  body.touch #status { top: 64px; bottom: auto; left: 12px; width: 190px; gap: 6px; }
+  body.touch #weapon, body.touch #ammo { font-size: 22px; white-space: nowrap; }
+  body.touch #status .row { flex-wrap: wrap; gap: 0 10px; }
+  body.touch #mmwrap { top: 100px; bottom: auto; right: 12px; }
+  body.touch #mm { width: 96px; height: 96px; }
+  body.touch #toast { bottom: 80px; }
+  html, body { overscroll-behavior: none; }
+  #tk { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); font-size: 22px; padding: 10px 22px 8px; background: var(--brass); color: var(--ash); }
+  body.touch #tk { bottom: 84px; }
+  #tc { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); font-size: 22px; padding: 10px 22px 8px; background: var(--bone); color: var(--ash); }
+  body.touch #tc { bottom: 140px; }
+  body.touch .screen { touch-action: pan-y; }
+  #lobby { display: flex; }
+  #lobby[hidden] { display: none; }
+  #lobby .lobby { margin: auto; }
+  button.sec { background: transparent; color: var(--bone); border: 1px solid var(--steel); }
+  button.sec:hover { background: var(--iron); }
+  .lobby { width: min(980px, 100%); display: grid; gap: 22px; }
+  .lobby h2 { font-family: var(--display); font-size: clamp(40px, 8vw, 64px); line-height: .9; text-transform: uppercase; }
+  .lobby h3 { font-family: var(--display); font-size: 26px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--brass); }
+  .lhead { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+  .lstats { display: flex; gap: 22px; flex-wrap: wrap; text-transform: uppercase; }
+  .lstats b { display: block; font-family: var(--display); font-size: 32px; line-height: 1; font-weight: 600; color: var(--bone); font-variant-numeric: tabular-nums; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .cols > section { min-width: 0; display: grid; gap: 10px; align-content: start; }
+  .armory { display: grid; gap: 10px; }
+  .wcard { display: grid; grid-template-columns: 84px 1fr auto; gap: 14px; align-items: center; border: 1px solid var(--steel); padding: 10px 12px; background: rgba(26,31,34,.6); }
+  .wcard svg { width: 84px; height: 32px; fill: var(--bone); }
+  .wcard.locked { opacity: .45; }
+  .wcard.locked svg { fill: var(--steel); }
+  .wcard b { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .wcard small { display: block; opacity: .7; font-size: 11px; }
+  .wcard .cnt { text-align: right; color: var(--brass); font-size: 11px; }
+  .opts { display: grid; gap: 8px; }
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .opt, .chip { font-family: var(--mono); font-size: 12px; letter-spacing: .04em; text-transform: none; color: var(--bone); background: transparent; border: 1px solid var(--steel); padding: 9px 12px; cursor: pointer; }
+  .opt:hover, .chip:hover { background: var(--iron); }
+  .opt[aria-pressed="true"], .chip[aria-pressed="true"] { border-color: var(--brass); background: rgba(212,165,55,.14); }
+  .opt b { display: block; font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .opt span { opacity: .75; }
+  .chip { text-align: center; }
+  .note { opacity: .7; font-size: 12px; line-height: 1.5; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .wcard { grid-template-columns: 64px 1fr auto; gap: 10px; } .wcard svg { width: 64px; } }
+  .bar.st > i { background: var(--brass); }
+  .bar.st.exh > i { background: var(--rust); }
+  #apanel { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--steel); background: rgba(12,14,15,.7); }
+  #apanel > div { padding: 4px 8px; display: grid; gap: 2px; min-width: 0; }
+  #apanel > div + div { border-left: 1px solid var(--steel); }
+  #apanel b { font-family: var(--display); font-size: 30px; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
+  #apanel.low #bul { color: var(--rust); }
+  .al { font-size: 10px; color: var(--steel); letter-spacing: .12em; }
+  body.touch #apanel b { font-size: 22px; }
+  body.touch #apanel .al { font-size: 8px; letter-spacing: .02em; }
+  @media (prefers-reduced-motion: reduce) { #feed div { animation: none; } .bar > i { transition: none; } }
+</style>
+
+<div id="stage">
+  <canvas id="c"></canvas>
+
+  <div class="hud" id="zone"><div class="label" id="zlabel">Contraction dans</div><b id="ztime">0:35</b></div>
+
+  <div class="hud" id="tally">
+    <div class="label">Survivants</div>
+    <div class="big" id="alive">25</div>
+    <div class="label">Éliminations <b id="kills" style="color:var(--bone)">0</b></div>
+    <div id="feed"></div>
+  </div>
+
+  <div class="hud" id="status">
+    <div class="row"><span class="label">Intégrité</span><b id="hpn">100</b></div>
+    <div class="bar" id="hpbar"><i id="hp"></i></div>
+    <div class="row"><span class="label">Blindage</span><b id="arn">0</b></div>
+    <div class="bar ar"><i id="ar"></i></div>
+    <div class="row"><span class="label">Endurance</span><b id="stn">100</b></div>
+    <div class="bar st"><i id="st"></i></div>
+    <div id="weapon">Pistolet</div>
+    <div id="apanel"><div><span class="al">Balles</span><b id="bul">12</b></div><div><span class="al">Chargeurs</span><b id="mags">2</b></div><div><span class="al">Réserve</span><b id="res">24</b></div></div>
+    <div id="reload"></div>
+    <div id="slots"><span class="slot" id="s1">1 Pistolet</span><span class="slot" id="s2">2 Fusil</span><span class="slot" id="s3">3 Pompe</span></div>
+  </div>
+
+  <div class="hud" id="mmwrap"><canvas id="mm" width="150" height="150"></canvas></div>
+  <div class="hud" id="toast"></div>
+  <button id="tc" type="button" hidden>Ouvrir</button>
+  <button id="tk" type="button" hidden>Poignarder</button>
+  <div id="tbtns"><button class="tb" id="tr" type="button">Recharger</button><button class="tb" id="tw" type="button">Arme</button></div>
+
+  <div class="screen" id="menu">
+    <div class="card">
+      <div class="tag">Bastion 9 · prototype jouable</div>
+      <h1>Zone<br><span>Morte</span></h1>
+      <p class="lead">Vingt-cinq combattants sont largués sur une planète-forteresse en ruine. Une seule zone de repli, qui se referme. Ramassez des armes, tenez-vous dans le cercle, soyez le dernier survivant.</p>
+      <p class="lead touchhint">Mobile : joystick gauche pour bouger (avance doucement vers une porte pour l'ouvrir, pousse-le plus loin pour sprinter et la défoncer), joystick droit pour viser et tirer.</p>
+      <dl>
+        <dt>PC · Flèches</dt><dd>Se déplacer</dd>
+        <dt>Souris</dt><dd>Viser, clic pour tirer</dd>
+        <dt>Maj</dt><dd>Sprinter (bruyant), consomme l'endurance (marcher sur une porte l'ouvre, sprinter dedans la défonce)</dd>
+        <dt>E</dt><dd>Interagir / ouvrir / récupérer</dd>
+        <dt>R</dt><dd>Recharger</dd>
+        <dt>Q</dt><dd>Changement d'arme</dd>
+        <dt>Tab</dt><dd>Carte / radar</dd>
+      </dl>
+      <div class="stats">
+       <div><b>25</b>combattants</div>
+       <div><b>5</b>armes</div>
+       <div><b>∞</b>retours</div>
+      </div>
+      <button id="start">Jouer</button>
+    </div>
+  </div>
+
+  <div class="screen" id="lobby" hidden>
+    <div class="lobby">
+      <div class="lhead">
+        <div>
+          <div class="tag">Bastion 9 · préparation</div>
+          <h2>Chargement du raid</h2>
+        </div>
+        <div class="lstats">
+          <div><b id="lv">1</b>niveau</div>
+          <div><b id="ap">0</b>armes</div>
+          <div><b id="lc">0</b>morts</div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <section>
+          <h3>Armurerie</h3>
+          <div class="armory">
+            <div class="wcard"><svg viewBox="0 0 140 54" aria-hidden="true"><path d="M6 22h22l12-12h52l12 12h30v10H92l-12 12H40L28 32H6z"/></svg><div><b>Pistolet</b><small>Précision fiable, faible bruit</small></div><div class="cnt">12</div></div>
+            <div class="wcard"><svg viewBox="0 0 140 54" aria-hidden="true"><path d="M8 20h56l20-12h34l14 12h8v14h-8l-14 12H84L64 34H8zm16 8h44l-8 8H16z"/></svg><div><b>Fusil</b><small>Peu de recul, bonne portée</small></div><div class="cnt">4</div></div>
+            <div class="wcard"><svg viewBox="0 0 140 54" aria-hidden="true"><path d="M8 25h42l18-16h42l22 16h8v12h-8l-22 16H68L50 37H8z"/></svg><div><b>Pompe</b><small>Dégâts brutaux à courte portée</small></div><div class="cnt">2</div></div>
+            <div class="wcard locked"><svg viewBox="0 0 140 54" aria-hidden="true"><path d="M14 24h20l12-12h48l12 12h20v12H96l-12 12H46L34 36H14z"/></svg><div><b>SMG</b><small>Débloqué au niveau 2</small></div><div class="cnt">—</div></div>
+          </div>
+        </section>
+
+        <section>
+          <h3>Options</h3>
+          <div class="opts">
+            <button class="opt" aria-pressed="true"><b>Solo</b><span>Partie classique</span></button>
+            <button class="opt" aria-pressed="false"><b>Coop</b><span>Objectif partagé</span></button>
+            <button class="opt" aria-pressed="false"><b>Online</b><span>Lobby multijoueur</span></button>
+          </div>
+          <div class="chips">
+            <button class="chip" aria-pressed="true">Normal</button>
+            <button class="chip" aria-pressed="false">Hard</button>
+            <button class="chip" aria-pressed="false">Nightfall</button>
+          </div>
+          <p class="note">Le mode Online offre un lobby avec liste des joueurs, salons, hôte et remplissage des slots vides par des bots. L’interface PC et mobile est conservée dans la même logique de jeu.</p>
+          <div class="stats">
+            <div><b id="rng">1</b>rand</div>
+            <div><b id="wv">0</b>vague</div>
+            <div><b id="top">0</b>top</div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="back">Retour</button>
+            <button class="sec" id="resume">Continuer</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
