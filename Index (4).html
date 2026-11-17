@@ -1,0 +1,59 @@
+// 1. Écouteur des touches (ZQSD et flèches uniquement)
+addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyZ','KeyQ','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+  KEYS[e.code] = true;
+  if (G.state !== 'play' || G.over) return;
+  if (e.code === 'KeyR') reload(P());
+  if (e.code === 'KeyF') knife();
+  if (e.code === 'KeyE') openNear();
+  if (e.code === 'Digit1') switchTo(P(), 'pistol');
+  if (e.code === 'Digit2') switchTo(P(), 'rifle');
+  if (e.code === 'Digit3') switchTo(P(), 'shotgun');
+});
+
+// 2. Déplacements dans update (ZQSD et flèches)
+if (KEYS.KeyZ || KEYS.ArrowUp) my -= 1;
+if (KEYS.KeyS || KEYS.ArrowDown) my += 1;
+if (KEYS.KeyQ || KEYS.ArrowLeft) mx -= 1;
+if (KEYS.KeyD || KEYS.ArrowRight) mx += 1;
+
+// 3. Plafond des grenades à 3 maximum par type au ramassage
+if (l.k === 'grenade') {
+  if (typeof inventory !== 'undefined') {
+    const kArr = Object.keys(inventory);
+    const rk = kArr[Math.floor(Math.random() * kArr.length)];
+    inventory[rk] = Math.min(3, (inventory[rk] || 0) + 1);
+    if (typeof setHud === 'function') setHud();
+    toast('+ 1 Grenade (' + (types[rk]?.label || rk) + ')');
+    return true;
+  }
+}
+
+// 4. Boucle principale protégée par le système anti-freeze (try/catch)
+let last = performance.now();
+function loop(now) {
+  try {
+    const dt = Math.min(.05, (now - last) / 1000); 
+    last = now;
+    if (G.state === 'play') {
+      if (ONLINE && NET.cd > 0) { 
+        NET.cd -= dt; 
+        $('ncount').hidden = false; 
+        $('ncount').textContent = 'Départ dans ' + Math.max(1, Math.ceil(NET.cd)); 
+        netStep(dt); 
+      } else { 
+        if (!$('ncount').hidden) $('ncount').hidden = true; 
+        update(dt); 
+      }
+    }
+    draw();
+    if ((G.hudT -= dt) <= 0) { 
+      G.hudT = .08; 
+      hud(); 
+    }
+  } catch (err) {
+    console.error("Récupération anti-freeze de l'erreur :", err);
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
