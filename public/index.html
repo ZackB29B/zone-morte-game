@@ -690,14 +690,14 @@
     }
     }
     loot = [];
-    const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol','grenade'];
+    const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol','grenade','incend','flash'];
     for (let i = 0, nl = Math.max(25, Math.round(150 * M0.zs * M0.zs)); i < nl; i++) { const pt = freePoint(); loot.push({ x: pt.x, y: pt.y, k: kinds[Math.floor(Math.random() * kinds.length)] }); }
-    const bk = ['ammo', 'ammo', 'med', 'armor', 'rifle', 'rifle', 'shotgun', 'shotgun', 'pistol', 'grenade'];
+    const bk = ['ammo', 'ammo', 'med', 'armor', 'rifle', 'rifle', 'shotgun', 'shotgun', 'pistol', 'grenade', 'incend', 'flash'];
     for (const b of blds) for (let i = 0; i < 3; i++) for (let t = 0; t < 12; t++) {
       const x = rnd(b.x + WT + 20, b.x + b.w - WT - 20), y = rnd(b.y + WT + 20, b.y + b.h - WT - 20);
       if (!inObs(x, y, 18)) { loot.push({ x, y, k: bk[Math.floor(Math.random() * bk.length)] }); break; }
     }
-    const upk = ['rifle', 'rifle', 'shotgun', 'shotgun', 'armor', 'armor', 'med', 'ammo', 'ammo'];
+    const upk = ['rifle', 'rifle', 'shotgun', 'shotgun', 'armor', 'armor', 'med', 'ammo', 'ammo', 'grenade', 'incend', 'flash'];
     for (const b of blds) if (b.st) for (let i = 0; i < 4; i++) for (let t = 0; t < 14; t++) {
       const x = rnd(b.x + WT + 20, b.x + b.w - WT - 20), y = rnd(b.y + WT + 20, b.y + b.h - WT - 20);
       if (!inObs(x, y, 18, 1) && !(x < b.st.x + b.st.w + 24 && y < b.st.y + b.st.h + 24)) { loot.push({ x, y, k: upk[Math.floor(Math.random() * upk.length)], lv: 1, bi: blds.indexOf(b) }); break; }
@@ -832,9 +832,12 @@
     if (l.k === 'med') { if (p.hp >= 100) return false; p.hp = Math.min(100, p.hp + 35); toast('+ Soins'); return true; }
     if (l.k === 'armor') { if (p.ar >= 100) return false; p.ar = Math.min(100, p.ar + 50); toast("+ Plaque d'armure"); return true; }
     if (l.k === 'ammo') { for (const k in p.ws) p.ws[k].res = Math.min(WP[k].mag * 6, p.ws[k].res + WP[k].mag); toast('+ Munitions'); return true; }
-    if (l.k === 'grenade') {
+    if (l.k === 'grenade' || l.k === 'incend' || l.k === 'flash') {
+      p.gremap = p.gremap || {};
+      p.gremap[l.k] = (p.gremap[l.k] || 0) + 1;
       p.grenades = (p.grenades || 0) + 1;
-      toast('+ 1 Grenade');
+      const names = { grenade: 'Grenade Frag', incend: 'Grenade Incendiaire', flash: 'Grenade Étourdissante' };
+      toast('+ 1 ' + (names[l.k] || 'Grenade'));
       return true;
     }
     if (p.ws[l.k]) { p.ws[l.k].res = Math.min(WP[l.k].mag * 6, p.ws[l.k].res + WP[l.k].mag); toast('+ Munitions ' + WP[l.k].n); return true; }
@@ -1221,45 +1224,39 @@
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
       if (!b) { bullets.splice(i, 1); continue; }
-      if (isNaN(b.vx) || isNaN(b.vy) || (b.vx === 0 && b.vy === 0)) {
+      if (isNaN(b.vx) || isNaN(b.vy)) {
         bullets.splice(i, 1);
         continue;
       }
+      
+      // Avancée de la balle
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+
       let dead = false;
-      const steps = Math.max(1, Math.ceil(Math.hypot(b.vx, b.vy) * dt / 10));
-      const sdx = (b.vx * dt) / steps;
-      const sdy = (b.vy * dt) / steps;
 
-      for (let s = 0; s < steps && !dead; s++) {
-        b.x += sdx;
-        b.y += sdy;
-
-        // Limites de la carte
-        if (b.x < 0 || b.y < 0 || b.x > MAP || b.y > MAP) {
-          dead = true;
-          break;
-        }
-
-        // Obstacles
+      // Limites de la carte ou fin de vie
+      if (b.x < 0 || b.y < 0 || b.x > MAP || b.y > MAP || b.life <= 0) {
+        dead = true;
+      } else {
+        // 1. Vérification des obstacles (murs et portes fermées)
         const ho = hitObs(b.x, b.y, b.lv);
         if (ho) {
-          if (ho.door && !b.vis) {
+          if (ho.door && !ho.open && !b.vis) {
             ho.hp -= (b.dmg || 15);
             if (ho.hp <= 0) breakDoor(ho, b.own);
           }
           dead = true;
-          break;
-        }
-
-        // Entités (uniquement pour les balles non visuelles ou locales)
-        if (!b.vis) {
+        } else {
+          // 2. Vérification des entités (joueurs / bots)
           for (const e of ents) {
             if (!e.alive || e === b.own || (e.lv || 0) !== (b.lv || 0) || (b.lv && e.bi !== b.own.bi)) continue;
-            if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 4) ** 2) {
-              hurt(e, b.dmg, b.own);
+            if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 8) ** 2) {
+              if (!b.vis) hurt(e, b.dmg, b.own);
               dead = true;
-              for (let k = 0; k < 4; k++) {
-                parts.push({ x: b.x, y: b.y, vx: rnd(-90, 90), vy: rnd(-90, 90), life: rnd(.15, .35), col: '#e7e1d3' });
+              for (let k = 0; k < 5; k++) {
+                parts.push({ x: b.x, y: b.y, vx: rnd(-100, 100), vy: rnd(-100, 100), life: rnd(.15, .35), col: '#e7e1d3' });
               }
               break;
             }
@@ -1267,8 +1264,7 @@
         }
       }
 
-      b.life -= dt;
-      if (dead || b.life <= 0) {
+      if (dead) {
         bullets.splice(i, 1);
       }
     }
@@ -1285,8 +1281,8 @@
   }
 
   // ---- rendu
-  const LOOTC = { med: '#6fbf73', armor: '#6fc3d9', ammo: '#d4a537', pistol: '#e7e1d3', rifle: '#ffd36b', shotgun: '#ff9f6b', grenade: '#e65a45' };
-  const LOOTG = { med: '+', armor: '◆', ammo: '•', pistol: 'P', rifle: 'F', shotgun: 'S', grenade: 'G' };
+  const LOOTC = { med: '#6fbf73', armor: '#6fc3d9', ammo: '#d4a537', pistol: '#e7e1d3', rifle: '#ffd36b', shotgun: '#ff9f6b', grenade: '#e65a45', incend: '#ff6b35', flash: '#6fd9d9' };
+  const LOOTG = { med: '+', armor: '◆', ammo: '•', pistol: 'P', rifle: 'F', shotgun: 'S', grenade: 'G', incend: 'I', flash: 'E' };
 
   function draw() {
     const p = ents[0];
