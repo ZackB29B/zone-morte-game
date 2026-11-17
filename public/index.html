@@ -510,7 +510,7 @@
     const ci = chests.indexOf(c);
     const gen = () => {
       const first = Math.random() < .5 ? (Math.random() < .5 ? 'rifle' : 'shotgun') : 'armor';
-      const extra = ['ammo', 'med', 'rifle', 'shotgun', 'armor', 'ammo', 'grenade'];
+      const extra = ['ammo', 'med', 'rifle', 'shotgun', 'armor', 'ammo', 'grenade', 'incend', 'flash', 'smoke'];
       const items = [first, extra[Math.floor(Math.random() * extra.length)], extra[Math.floor(Math.random() * extra.length)]];
       items.forEach((k, i) => {
         const a = i / 3 * 6.283 + rnd(0, 1);
@@ -690,7 +690,7 @@
     }
     }
     loot = [];
-    const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol','grenade','incend','flash'];
+    const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol','incend'];
     for (let i = 0, nl = Math.max(25, Math.round(150 * M0.zs * M0.zs)); i < nl; i++) { const pt = freePoint(); loot.push({ x: pt.x, y: pt.y, k: kinds[Math.floor(Math.random() * kinds.length)] }); }
     const bk = ['ammo', 'ammo', 'med', 'armor', 'rifle', 'rifle', 'shotgun', 'shotgun', 'pistol', 'grenade', 'incend', 'flash'];
     for (const b of blds) for (let i = 0; i < 3; i++) for (let t = 0; t < 12; t++) {
@@ -832,11 +832,11 @@
     if (l.k === 'med') { if (p.hp >= 100) return false; p.hp = Math.min(100, p.hp + 35); toast('+ Soins'); return true; }
     if (l.k === 'armor') { if (p.ar >= 100) return false; p.ar = Math.min(100, p.ar + 50); toast("+ Plaque d'armure"); return true; }
     if (l.k === 'ammo') { for (const k in p.ws) p.ws[k].res = Math.min(WP[k].mag * 6, p.ws[k].res + WP[k].mag); toast('+ Munitions'); return true; }
-    if (l.k === 'grenade' || l.k === 'incend' || l.k === 'flash') {
+    if (l.k === 'grenade' || l.k === 'incend' || l.k === 'flash' || l.k === 'smoke') {
       p.gremap = p.gremap || {};
       p.gremap[l.k] = (p.gremap[l.k] || 0) + 1;
       p.grenades = (p.grenades || 0) + 1;
-      const names = { grenade: 'Grenade Frag', incend: 'Grenade Incendiaire', flash: 'Grenade Étourdissante' };
+      const names = { grenade: 'Grenade Létale', incend: 'Grenade Incendiaire', flash: 'Grenade Flash', smoke: 'Grenade Fumigène' };
       toast('+ 1 ' + (names[l.k] || 'Grenade'));
       return true;
     }
@@ -1281,8 +1281,8 @@
   }
 
   // ---- rendu
-  const LOOTC = { med: '#6fbf73', armor: '#6fc3d9', ammo: '#d4a537', pistol: '#e7e1d3', rifle: '#ffd36b', shotgun: '#ff9f6b', grenade: '#e65a45', incend: '#ff6b35', flash: '#6fd9d9' };
-  const LOOTG = { med: '+', armor: '◆', ammo: '•', pistol: 'P', rifle: 'F', shotgun: 'S', grenade: 'G', incend: 'I', flash: 'E' };
+  const LOOTC = { med: '#6fbf73', armor: '#6fc3d9', ammo: '#d4a537', pistol: '#e7e1d3', rifle: '#ffd36b', shotgun: '#ff9f6b', grenade: '#e65a45', incend: '#ff6b35', flash: '#6fd9d9', smoke: '#b0b8bc' };
+  const LOOTG = { med: '+', armor: '◆', ammo: '•', pistol: 'P', rifle: 'F', shotgun: 'S', grenade: 'G', incend: 'I', flash: 'E', smoke: 'M' };
 
   function draw() {
     const p = ents[0];
