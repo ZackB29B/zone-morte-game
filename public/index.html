@@ -1091,6 +1091,7 @@
     if (e.code === 'KeyR') reload(P());
     if (e.code === 'KeyF') knife();
     if (e.code === 'KeyE') openNear();
+    if (e.code === 'KeyG') cycleGrenade(P());
     if (e.code === 'Digit1') switchTo(P(), 'pistol');
     if (e.code === 'Digit2') switchTo(P(), 'rifle');
     if (e.code === 'Digit3') switchTo(P(), 'shotgun');
@@ -1157,6 +1158,20 @@
   }, { passive: false });
 
   // ---- mise à jour
+
+  function cycleGrenade(p) {
+    p.gremap = p.gremap || {};
+    const order = ['grenade', 'incend', 'flash', 'smoke'];
+    const available = order.filter(k => (p.gremap[k] || 0) > 0);
+    if (available.length === 0) { toast('Aucune grenade'); return; }
+    const current = p.curGrenade || available[0];
+    let idx = available.indexOf(current);
+    idx = (idx + 1) % available.length;
+    p.curGrenade = available[idx];
+    const names = { grenade: 'Grenade Létale', incend: 'Grenade Incendiaire', flash: 'Grenade Flash', smoke: 'Grenade Fumigène' };
+    toast('Grenade active : ' + (names[p.curGrenade] || p.curGrenade));
+  }
+
   function update(dt) {
     const p = ents[0];
     G.time += dt;
