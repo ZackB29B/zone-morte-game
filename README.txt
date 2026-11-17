@@ -1,4 +1,4 @@
-ZONE MORTE - DEPLOIEMENT RENDER
+ONE MORTE - DEPLOIEMENT RENDER
 
 Structure attendue :
 - server.js

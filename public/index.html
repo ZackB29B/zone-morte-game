@@ -171,22 +171,21 @@
   #aerr { min-height: 18px; color: #ff8c78; line-height: 1.4; }
   #auser { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
   #auser button { font-size: 14px; letter-spacing: .08em; padding: 4px 10px 2px; }
+  .chips.two { grid-template-columns: 1fr 1fr; }
+  .in { width: 100%; box-sizing: border-box; padding: 10px 12px; color: var(--bone); background: var(--ash); border: 1px solid var(--steel); font: 14px var(--mono); }
+  .in:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+  .in[readonly] { opacity: .7; }
+  #onl { display: grid; gap: 10px; }
+  #onl[hidden], #offopts[hidden] { display: none; }
+  #offopts { display: grid; gap: 10px; }
+  #onl .opt:disabled, #onl button:disabled { opacity: .45; cursor: default; }
+  #onl .small { font-size: 16px; letter-spacing: .1em; padding: 6px 14px 4px; }
+  .joinrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  #nplist { display: grid; gap: 4px; border: 1px solid var(--steel); padding: 8px 10px; }
+  #npcode { font-family: var(--display); font-size: 30px; letter-spacing: .2em; color: var(--brass); }
+  #ncount { left: 50%; top: 38%; transform: translateX(-50%); font-family: var(--display); font-size: clamp(36px, 9vw, 72px); letter-spacing: .08em; color: var(--brass); text-shadow: 0 2px 18px #000; white-space: nowrap; }
+  #ncount[hidden] { display: none; }
   @media (prefers-reduced-motion: reduce) { #feed div { animation: none; } .bar > i { transition: none; } }
-
-  .mpanel { border:1px solid var(--steel); background:rgba(12,14,15,.72); padding:14px; display:grid; gap:12px; }
-  .mrow { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .mpanel input { min-width:0; flex:1; padding:10px; color:var(--bone); background:var(--ash); border:1px solid var(--steel); font:13px var(--mono); text-transform:uppercase; }
-  .mpanel button { font-size:19px; padding:7px 14px 5px; }
-  #roomInfo { color:var(--ice); font-size:12px; min-height:16px; }
-  #roomCode { font-family:var(--display); font-size:30px; letter-spacing:.18em; color:var(--brass); }
-  #roomPlayers { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:6px; max-height:150px; overflow:auto; }
-  .player-pill { border:1px solid var(--steel); padding:6px 8px; font-size:11px; display:flex; justify-content:space-between; gap:8px; }
-  .player-pill .team-a { color:var(--ice); } .player-pill .team-b { color:#d58ce8; }
-  #roomChatLog { height:130px; overflow:auto; border:1px solid var(--steel); background:#080a0b; padding:8px; display:flex; flex-direction:column; gap:5px; font-size:11px; }
-  #roomChatLog .sys { color:var(--brass); opacity:.8; }
-  #roomChatForm { display:flex; gap:8px; } #roomChatForm input { text-transform:none; }
-  .mpanel button:disabled { opacity:.4; cursor:not-allowed; }
-
 </style>
 </head>
 <body>
@@ -218,6 +217,7 @@
 
   <div class="hud" id="mmwrap"><canvas id="mm" width="150" height="150"></canvas></div>
   <div class="hud" id="toast"></div>
+  <div class="hud" id="ncount" hidden></div>
   <button id="tc" type="button" hidden>Ouvrir</button>
   <button id="tk" type="button" hidden>Poignarder</button>
   <div id="tbtns"><button class="tb" id="tr" type="button">Recharger</button><button class="tb" id="tw" type="button">Arme</button></div>
@@ -276,31 +276,35 @@
         </section>
         <section>
           <h3>Créer une partie</h3>
-          <div class="label">Mode</div>
-          <div class="opts" id="modes"></div>
-          <div class="label">Difficulté des bots</div>
-          <div class="chips" id="diffs"></div>
-          <p class="note" id="dnote"></p>
-          <p class="note">Joue en ligne avec tes amis : déplacements, tirs et dégâts sont synchronisés dans le salon. Le mode solo contre les bots reste disponible.</p>
+          <div class="label">Connexion</div>
+          <div class="chips two" id="net"><button type="button" class="chip" data-n="0" aria-pressed="true">Hors ligne</button><button type="button" class="chip" data-n="1" aria-pressed="false">En ligne</button></div>
+          <div id="offopts">
+            <div class="label">Mode</div>
+            <div class="opts" id="modes"></div>
+            <div class="label">Difficulté des bots</div>
+            <div class="chips" id="diffs"></div>
+            <p class="note" id="dnote"></p>
+            <p class="note">Hors ligne : tu joues seul contre des bots, sur une carte tirée au hasard à chaque partie.</p>
+          </div>
+          <div id="onl" hidden>
+            <p class="note" id="nstat">Connexion au serveur…</p>
+            <label class="label" for="nname">Pseudo en ligne</label>
+            <input class="in" id="nname" maxlength="16" autocomplete="nickname" placeholder="Ton pseudo">
+            <button type="button" class="opt" id="nfind"><b>Rechercher une partie</b><span>Bataille royale en ligne : les joueurs en recherche sont regroupés, la partie démarre quand il y en a assez.</span></button>
+            <div id="nsearch" hidden class="opts"><p class="note" id="nsn"></p><button type="button" class="sec small" id="ncancel">Annuler la recherche</button></div>
+            <div class="label">Jouer entre amis</div>
+            <div class="joinrow"><input class="in" id="ncode" maxlength="6" placeholder="CODE DU SALON" autocomplete="off" style="text-transform:uppercase"><button type="button" class="sec small" id="njoin">Rejoindre</button></div>
+            <button type="button" class="sec small" id="ncreate">Créer un salon</button>
+            <div id="nparty" hidden class="opts">
+              <div class="label">Salon <span id="npcode"></span></div>
+              <div id="nplist"></div>
+              <button type="button" class="small" id="nstart">Lancer la partie</button>
+              <p class="note" id="nwait">En attente du chef de salon…</p>
+              <button type="button" class="sec small" id="nleave">Quitter le salon</button>
+            </div>
+          </div>
         </section>
       </div>
-      <section class="mpanel" aria-label="Multijoueur en ligne">
-        <div class="lhead"><div><h3>Multijoueur en ligne</h3><p class="note">Crée un salon privé ou rejoins tes amis avec un code d'invitation. Jusqu'à 25 joueurs.</p></div><div id="roomCode" hidden></div></div>
-        <div class="mrow" id="roomActions">
-          <button id="roomCreate" type="button">Créer un salon</button>
-          <input id="roomCodeInput" maxlength="6" placeholder="CODE INVITATION" aria-label="Code d'invitation">
-          <button id="roomJoin" class="sec" type="button">Rejoindre</button>
-        </div>
-        <div id="roomInfo" role="status" aria-live="polite">Connexion au service multijoueur…</div>
-        <div id="roomContent" hidden>
-          <div class="mrow"><span class="label">Équipe</span><button id="teamA" class="chip" type="button">Équipe A</button><button id="teamB" class="chip" type="button">Équipe B</button><button id="roomStart" type="button" hidden>Lancer la partie</button><button id="roomLeave" class="sec" type="button">Quitter le salon</button></div>
-          <div class="label">Joueurs connectés <b id="roomCount">0/25</b></div>
-          <div id="roomPlayers"></div>
-          <div class="label">Chat du salon</div>
-          <div id="roomChatLog" aria-live="polite"></div>
-          <form id="roomChatForm"><input id="roomChatInput" maxlength="180" placeholder="Écrire un message…" autocomplete="off" aria-label="Message"><button type="submit">Envoyer</button></form>
-        </div>
-      </section>
       <div class="modes"><button id="play" type="button">Jouer</button><button id="lback" class="sec" type="button">Changer d'appareil</button></div>
     </div>
   </div>
@@ -319,6 +323,7 @@
   </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -359,7 +364,7 @@
     { n: 'Ghost',      desc: 'Presque aucune erreur, vision large, entendent tout.', err: .015, turn: 8.5, dmg: 1.2, spd: 182, view: 680, spread: .6, hp: 150, cd: .8, cone: 1.8, hear: 400, ar: 100, react: .65,  wk: [0, 3, 2] }
   ];
   const SAVE_KEY = 'zonemorte.v1';
-  const SAVE = { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1 };
+  const SAVE = { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false };
   try { const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (r && typeof r === 'object') Object.assign(SAVE, r); } catch (_) {}
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
   if (!MODES[SAVE.mode]) SAVE.mode = 'br';
@@ -374,6 +379,13 @@
   let ents, obs, blds, loot, chests, bullets, parts, craters, zone, Z;
   const G = { state: 'menu', hurt: 0, over: false, endT: 0, win: false, place: 1, time: 0, hudT: 0 };
   const P = () => ents[0];
+  let ONLINE = false;
+  const NET = { sock: null, id: null, name: '', ok: false, err: '', players: [], seed: 0, cd: 0, inMatch: false, mm: null, party: null, pop: 0, sendT: 0, applying: false };
+  let MAPT = { th: null, pat: null, decor: [] };
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function seeded(seed, fn) { const o = Math.random; Math.random = mulberry(seed); try { return fn(); } finally { Math.random = o; } }
+  let ZR = Math.random;
+  function netEmit(ev, data) { if (NET.sock && NET.ok && NET.inMatch) NET.sock.emit(ev, data); }
 
   function inObs(x, y, pad, lv) {
     for (const o of obs) if (!o.dead && !o.open && (o.lv || 0) === (lv || 0) && x > o.x - pad && x < o.x + o.w + pad && y > o.y - pad && y < o.y + o.h + pad) return true;
@@ -433,7 +445,8 @@
     const t = stabTarget(p);
     if (!t) return;
     for (let i = 0; i < 10; i++) parts.push({ x: t.x, y: t.y, vx: rnd(-140, 140), vy: rnd(-140, 140), life: rnd(.3, .6), col: '#b5473d' });
-    if (onlineGame && t.remote) { if (window.__zmSocket) window.__zmSocket.emit('player-damage', { target:t.playerId, damage:100 }); toast('Coup porté'); } else { kill(t, p); toast('Élimination au couteau'); }
+    if (t.rem) netHit(t, 999, 1); else kill(t, p);
+    toast('Élimination au couteau');
   }
   const insideB = (e, b) => e.x > b.x && e.x < b.x + b.w && e.y > b.y && e.y < b.y + b.h;
   function objVis(o, p) { const ol = o.lv || 0; if (!p.lv) return ol === 0; return o.bi === p.bi ? ol === 1 : ol === 0; }
@@ -463,27 +476,38 @@
     }
     return null;
   }
+  function openChest(c, seed, quiet) {
+    if (c.open) return;
+    c.open = true;
+    const ci = chests.indexOf(c);
+    const gen = () => {
+      const first = Math.random() < .5 ? (Math.random() < .5 ? 'rifle' : 'shotgun') : 'armor';
+      const extra = ['ammo', 'med', 'rifle', 'shotgun', 'armor', 'ammo'];
+      const items = [first, extra[Math.floor(Math.random() * extra.length)], extra[Math.floor(Math.random() * extra.length)]];
+      items.forEach((k, i) => {
+        const a = i / 3 * 6.283 + rnd(0, 1);
+        let x = c.x + Math.cos(a) * 30, y = c.y + Math.sin(a) * 30;
+        if (inObs(x, y, 10, c.lv)) { x = c.x; y = c.y; }
+        loot.push({ x, y, k, lv: c.lv || 0, bi: c.bi, id: 'c' + ci + '_' + i });
+      });
+    };
+    if (seed != null) seeded(seed, gen); else gen();
+    for (let i = 0; i < 8; i++) parts.push({ x: c.x, y: c.y, vx: rnd(-120, 120), vy: rnd(-120, 120), life: rnd(.3, .6), col: '#d4a537' });
+    if (!quiet) toast('Coffre ouvert');
+  }
   function openNear() {
     const p = P();
     if (G.state !== 'play' || G.over || !p.alive) return;
     const c = nearChest(p);
     if (!c) return;
-    c.open = true;
-    const first = Math.random() < .5 ? (Math.random() < .5 ? 'rifle' : 'shotgun') : 'armor';
-    const extra = ['ammo', 'med', 'rifle', 'shotgun', 'armor', 'ammo'];
-    const items = [first, extra[Math.floor(Math.random() * extra.length)], extra[Math.floor(Math.random() * extra.length)]];
-    items.forEach((k, i) => {
-      const a = i / 3 * 6.283 + rnd(0, 1);
-      let x = c.x + Math.cos(a) * 30, y = c.y + Math.sin(a) * 30;
-      if (inObs(x, y, 10, c.lv)) { x = c.x; y = c.y; }
-      loot.push({ x, y, k, lv: c.lv || 0, bi: c.bi });
-    });
-    for (let i = 0; i < 8; i++) parts.push({ x: c.x, y: c.y, vx: rnd(-120, 120), vy: rnd(-120, 120), life: rnd(.3, .6), col: '#d4a537' });
-    toast('Coffre ouvert');
+    const s = ONLINE ? Math.floor(Math.random() * 2147483000) + 1 : null;
+    openChest(c, s, false);
+    if (ONLINE) netEmit('ch', { i: chests.indexOf(c), s });
   }
   function breakDoor(o, by) {
     if (o.dead) return; o.dead = true;
     for (let i = 0; i < 12; i++) parts.push({ x: o.x + o.w / 2, y: o.y + o.h / 2, vx: rnd(-200, 200), vy: rnd(-200, 200), life: rnd(.3, .8), col: '#b08a4a' });
+    if (ONLINE && !NET.applying && by === ents[0]) netEmit('door', { i: obs.indexOf(o), t: 'b' });
     if (by && !by.bot) toast('Porte défoncée');
   }
 
@@ -496,15 +520,88 @@
       strafe: Math.random() < .5 ? 1 : -1, goingZone: false, lx: x, ly: y, stT: 0, st: 100, exh: false, stD: 0 };
   }
 
+
+  // ---- cartes aléatoires : un thème (sol + décor) tiré au hasard à chaque partie
+  const THEMES = [
+    { n: 'Landes de cendres',  base: '#1d1c1a', a: '#2b2926', b: '#131210', speck: '#5a554a', tuft: '#6a6652', decor: ['rock', 'tuft', 'tuft', 'bone', 'stain'] },
+    { n: 'Toundra gelée',      base: '#1a232a', a: '#283842', b: '#131b21', speck: '#86a6b4', tuft: '#8fb0bd', decor: ['rock', 'ice', 'ice', 'puddle', 'tuft'] },
+    { n: 'Jungle de spores',   base: '#14201a', a: '#1e3226', b: '#0e1710', speck: '#5a8f52', tuft: '#5fa056', decor: ['tuft', 'tuft', 'tuft', 'rock', 'spore'] },
+    { n: 'Désert de rouille',  base: '#2b2019', a: '#3d2c20', b: '#1f1610', speck: '#9a643c', tuft: '#9a7a4c', decor: ['rock', 'tuft', 'bone', 'rock', 'stain'] },
+    { n: 'Plaine volcanique',  base: '#1e1716', a: '#2e201d', b: '#120d0d', speck: '#8a432e', tuft: '#74402e', decor: ['rock', 'rock', 'lava', 'stain'] },
+    { n: 'Zone industrielle',  base: '#1a1d20', a: '#252a2e', b: '#121517', speck: '#5d6870', tuft: '#5d6870', decor: ['plate', 'plate', 'rock', 'stain', 'bone'] }
+  ];
+  function buildGround(th, rg) {
+    const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d');
+    const L = hex => { const n = parseInt(hex.slice(1), 16); return 'rgb(' + [n >> 16, n >> 8 & 255, n & 255].map(v => Math.min(255, Math.round(v * 1.45 + 6))).join(',') + ')'; };
+    const cb = L(th.base), ca = L(th.a), cd = L(th.b);
+    g.fillStyle = cb; g.fillRect(0, 0, S, S);
+    const wrap = (x, y, f) => { for (const dx of [-S, 0, S]) for (const dy of [-S, 0, S]) f(x + dx, y + dy); };
+    for (let i = 0; i < 30; i++) {
+      const x = rg() * S, y = rg() * S, r = 50 + rg() * 120, col = rg() < .55 ? ca : cd;
+      wrap(x, y, (X, Y) => {
+        if (X < -r || Y < -r || X > S + r || Y > S + r) return;
+        const gr = g.createRadialGradient(X, Y, 0, X, Y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.globalAlpha = .8; g.fillStyle = gr; g.beginPath(); g.arc(X, Y, r, 0, 6.283); g.fill();
+      });
+    }
+    g.fillStyle = th.speck;
+    for (let i = 0; i < 1500; i++) { g.globalAlpha = .05 + rg() * .22; g.fillRect(rg() * S, rg() * S, 1 + rg() * 2.5, 1 + rg() * 2.5); }
+    g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 1.2; g.globalAlpha = 1;
+    for (let i = 0; i < 12; i++) {
+      let x = 40 + rg() * (S - 80), y = 40 + rg() * (S - 80), a = rg() * 6.283; g.beginPath(); g.moveTo(x, y);
+      for (let k = 0; k < 6; k++) { a += (rg() - .5) * 1.2; x += Math.cos(a) * (10 + rg() * 16); y += Math.sin(a) * (10 + rg() * 16); g.lineTo(x, y); }
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    return ctx.createPattern(c, 'repeat');
+  }
+  function genDecor(th, rg) {
+    const out = [], n = 520;
+    for (let i = 0, tries = 0; i < n && tries < n * 4; tries++) {
+      const x = rg() * MAP, y = rg() * MAP;
+      if (blds.some(b => x > b.x - 20 && x < b.x + b.w + 20 && y > b.y - 20 && y < b.y + b.h + 20) || inObs(x, y, 10, 0)) continue;
+      out.push({ x, y, t: th.decor[Math.floor(rg() * th.decor.length)], s: 4 + rg() * 9, a: rg() * 6.283 }); i++;
+    }
+    return out;
+  }
+  function initGround() {
+    const th = THEMES[Math.floor(Math.random() * THEMES.length)], rg = mulberry(Math.floor(Math.random() * 1e9) + 1);
+    MAPT = { th, pat: buildGround(th, rg), decor: genDecor(th, rg) };
+  }
+  function drawDecor(d, th) {
+    const s = d.s;
+    ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a);
+    switch (d.t) {
+      case 'rock': ctx.globalAlpha = .35; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(2, 3, s, s * .7, 0, 0, 6.283); ctx.fill(); ctx.globalAlpha = .4; ctx.fillStyle = th.speck; ctx.beginPath(); ctx.ellipse(0, 0, s, s * .7, 0, 0, 6.283); ctx.fill(); break;
+      case 'tuft': ctx.globalAlpha = .55; ctx.strokeStyle = th.tuft; ctx.lineWidth = 1.4; ctx.beginPath(); for (let k = -2; k <= 2; k++) { ctx.moveTo(k * 2.2, 3); ctx.lineTo(k * 3.4, -s * .8); } ctx.stroke(); break;
+      case 'bone': ctx.globalAlpha = .3; ctx.strokeStyle = '#d8d0bd'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.moveTo(-s * .6, -3); ctx.lineTo(s * .6, 4); ctx.stroke(); break;
+      case 'ice': ctx.globalAlpha = .3; ctx.fillStyle = '#cfeaf5'; ctx.beginPath(); ctx.moveTo(-s, 0); ctx.lineTo(0, -s * .8); ctx.lineTo(s, 2); ctx.lineTo(0, s * .7); ctx.closePath(); ctx.fill(); break;
+      case 'puddle': ctx.globalAlpha = .22; ctx.fillStyle = '#7fb6d4'; ctx.beginPath(); ctx.ellipse(0, 0, s * 2, s * 1.2, 0, 0, 6.283); ctx.fill(); break;
+      case 'spore': ctx.globalAlpha = .18; ctx.fillStyle = '#8fe08a'; ctx.beginPath(); ctx.arc(0, 0, s * 1.6, 0, 6.283); ctx.fill(); ctx.globalAlpha = .6; ctx.beginPath(); ctx.arc(0, 0, 2, 0, 6.283); ctx.fill(); break;
+      case 'lava': ctx.globalAlpha = .22; ctx.fillStyle = '#d4552a'; ctx.beginPath(); ctx.ellipse(0, 0, s * 1.8, s * .9, 0, 0, 6.283); ctx.fill(); ctx.globalAlpha = .3; ctx.fillStyle = '#ffb36b'; ctx.beginPath(); ctx.ellipse(0, 0, s * .8, s * .35, 0, 0, 6.283); ctx.fill(); break;
+      case 'plate': ctx.globalAlpha = .22; ctx.strokeStyle = '#9aa7b0'; ctx.lineWidth = 1.5; ctx.strokeRect(-s * 1.4, -s, s * 2.8, s * 2); ctx.beginPath(); ctx.moveTo(-s * 1.4, 0); ctx.lineTo(s * 1.4, 0); ctx.stroke(); break;
+      default: ctx.globalAlpha = .35; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(0, 0, s * 1.6, s, 0, 0, 6.283); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function planNext() {
-    const nr = PH[Z.p], a = rnd(0, 6.283), off = Math.max(0, zone.r - nr) * rnd(.2, .9);
+    const zr = () => ONLINE ? ZR() : Math.random();
+    const nr = PH[Z.p], a = zr() * 6.283, off = Math.max(0, zone.r - nr) * (.2 + zr() * .7);
     Z.from = { cx: zone.cx, cy: zone.cy, r: zone.r };
     Z.to = { cx: zone.cx + Math.cos(a) * off, cy: zone.cy + Math.sin(a) * off, r: nr };
     Z.stage = 'wait'; Z.t = 24; Z.dur = 26;
   }
 
+  function onlineMode() { const n = NET.players.length; return { n: 'En ligne', ent: n, zs: n <= 2 ? .35 : n <= 6 ? .65 : 1 }; }
   function init() {
-    const M0 = MODES[SAVE.mode] || MODES.br;
+    if (!ONLINE) return initWorld();
+    const o = Math.random; Math.random = mulberry(NET.seed);
+    try { initWorld(); } finally { Math.random = o; }
+  }
+  function initWorld() {
+    const M0 = ONLINE ? onlineMode() : (MODES[SAVE.mode] || MODES.br);
     N = M0.ent; R0 = Math.round(2450 * M0.zs); PH = PH0.map(v => Math.round(v * M0.zs));
     obs = []; blds = [];
     const nB = Math.max(10, Math.round(80 * M0.zs * M0.zs));
@@ -521,6 +618,7 @@
       obs.push({ x, y, w: s, h: s }); i++;
     }
     craters = Array.from({ length: 110 }, () => ({ x: rnd(0, MAP), y: rnd(0, MAP), r: rnd(30, 130) }));
+    initGround();
     zone = { cx: MAP / 2, cy: MAP / 2, r: R0 };
     Z = { p: 0, stage: 'wait', t: 30, dur: 26, from: null, to: null };
     Z.to = { cx: MAP / 2, cy: MAP / 2, r: R0 };
@@ -535,6 +633,16 @@
       for (let k = 0; k < 30 && spots.some(s => (s.x - pt.x) ** 2 + (s.y - pt.y) ** 2 < 260 * 260); k++) pt = freePoint();
       spots.push(pt);
     }
+    if (ONLINE) {
+      const mi = Math.max(0, NET.players.findIndex(q => q.id === NET.id));
+      ents.push(mkEnt(spots[mi].x, spots[mi].y, false, NET.name || 'Vous', 'pistol'));
+      NET.players.forEach((q, i) => {
+        if (i === mi) return;
+        const e = mkEnt(spots[i].x, spots[i].y, false, q.name, 'pistol');
+        e.rem = true; e.nid = q.id; e.tx = e.x; e.ty = e.y; e.ta = e.a; e.seen = false;
+        ents.push(e);
+      });
+    } else {
     ents.push(mkEnt(spots[0].x, spots[0].y, false, 'Vous', 'pistol'));
     const pool = NAMES.slice().sort(() => Math.random() - .5);
     for (let i = 1; i < N; i++) {
@@ -552,6 +660,7 @@
       }
       if (!ok) { e.lv = 0; e.bi = -1; }
     }
+    }
     loot = [];
     const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol'];
     for (let i = 0, nl = Math.max(25, Math.round(150 * M0.zs * M0.zs)); i < nl; i++) { const pt = freePoint(); loot.push({ x: pt.x, y: pt.y, k: kinds[Math.floor(Math.random() * kinds.length)] }); }
@@ -565,6 +674,7 @@
       const x = rnd(b.x + WT + 20, b.x + b.w - WT - 20), y = rnd(b.y + WT + 20, b.y + b.h - WT - 20);
       if (!inObs(x, y, 18, 1) && !(x < b.st.x + b.st.w + 24 && y < b.st.y + b.st.h + 24)) { loot.push({ x, y, k: upk[Math.floor(Math.random() * upk.length)], lv: 1, bi: blds.indexOf(b) }); break; }
     }
+    loot.forEach((l, i) => { l.id = 'w' + i; });
     chests = [];
     const putChest = (x, y, lv, bi) => chests.push({ x, y, lv, bi, open: false });
     const crs = obs.filter(o => o.bi === undefined && !o.door).sort(() => Math.random() - .5);
@@ -603,7 +713,7 @@
       if (d2 < e.r * e.r) {
         if (o.door) {
           if (e.sprint) { breakDoor(o, e); continue; }
-          o.open = true; continue;
+          o.open = true; if (ONLINE && e === ents[0]) netEmit('door', { i: obs.indexOf(o), t: 'o' }); continue;
           
         }
         if (d2 > .0001) { const d = Math.sqrt(d2), p = e.r - d; e.x += dx / d * p; e.y += dy / d * p; }
@@ -626,7 +736,6 @@
     const w = WP[e.cur], s = e.ws[e.cur];
     if (s.mag <= 0) { reload(e); return; }
     s.mag--; e.cd = w.rate * (e.d ? e.d.cd : 1); e.flash = .06; e.shotT = 1.5;
-    if (onlineGame && !e.remote && window.__zmSocket) window.__zmSocket.emit('player-shot', { x:e.x, y:e.y, a:e.a, weapon:e.cur });
     let mx0 = e.x + Math.cos(e.a) * 22, my0 = e.y + Math.sin(e.a) * 22;
     for (const f of [.35, .7, 1]) if (inObs(e.x + (mx0 - e.x) * f, e.y + (my0 - e.y) * f, 0, e.lv)) { mx0 = e.x; my0 = e.y; break; }
     for (let i = 0; i < w.pel; i++) {
@@ -634,6 +743,7 @@
       bullets.push({ x: mx0, y: my0, vx: Math.cos(a) * w.spd, vy: Math.sin(a) * w.spd,
         dmg: w.dmg * (e.bot ? e.d.dmg : 1), own: e, lv: e.lv || 0, life: w.rng / w.spd, col: w.col });
     }
+    if (ONLINE && e === ents[0]) netEmit('shot', { x: mx0, y: my0, a: e.a, w: e.cur });
     if (s.mag <= 0) reload(e);
   }
   function reload(e) {
@@ -646,9 +756,13 @@
     e.cur = k; e.rl = 0; e.cd = .2;
   }
 
+  function netHit(e, d, k) { if (NET.sock && NET.ok && e.alive) NET.sock.emit('hit', { t: e.nid, d: Math.round(d * 10) / 10, k: k ? 1 : 0 }); }
   function hurt(e, d, by) {
+    if (ONLINE && e.rem) { if (by === ents[0]) netHit(e, d, 0); return; }
+    hurtLocal(e, d, by);
+  }
+  function hurtLocal(e, d, by) {
     if (!e.alive) return;
-    if (onlineGame && e.remote) { if (by && !by.remote && window.__zmSocket) window.__zmSocket.emit('player-damage', { target:e.playerId, damage:d }); return; }
     if (e.ar > 0) { const a = Math.min(e.ar, d * .5); e.ar -= a; d -= a; }
     e.hp -= d;
     if (e === ents[0]) G.hurt = Math.min(.45, G.hurt + .12);
@@ -663,9 +777,14 @@
     e.alive = false; e.hp = 0;
     if (by && by !== e) by.kills++;
     const alive = ents.filter(x => x.alive).length;
-    feed(by && by !== e ? by.name + '  ›  ' + e.name : e.name + '  ›  la zone', by === ents[0]);
-    loot.push({ x: e.x, y: e.y, k: 'ammo', lv: e.lv || 0, bi: e.bi });
-    if (Math.random() < .6) loot.push({ x: e.x + 12, y: e.y + 10, k: e.cur, lv: e.lv || 0, bi: e.bi });
+    feed(by && by !== e ? by.name + '  ›  ' + e.name : e.quit ? e.name + ' a quitté' : e.name + '  ›  la zone', by === ents[0]);
+    const tag = 'd' + String(e.nid || NET.id || 'x').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), dl = [];
+    if (e.rem) { for (const d of (e.dropsIn || [])) loot.push(d); }
+    else {
+      const o1 = { x: e.x, y: e.y, k: 'ammo', lv: e.lv || 0, bi: e.bi, id: tag + 'a' }; loot.push(o1); dl.push(o1);
+      if (Math.random() < .6) { const o2 = { x: e.x + 12, y: e.y + 10, k: e.cur, lv: e.lv || 0, bi: e.bi, id: tag + 'w' }; loot.push(o2); dl.push(o2); }
+    }
+    if (ONLINE && e === ents[0] && NET.sock) NET.sock.emit('dead', { b: by && by.nid ? by.nid : null, dr: dl.map(q => ({ x: q.x, y: q.y, k: q.k, lv: q.lv ? 1 : 0, bi: q.bi === undefined ? -1 : q.bi, id: q.id })) });
     for (let i = 0; i < 14; i++) parts.push({ x: e.x, y: e.y, vx: rnd(-160, 160), vy: rnd(-160, 160), life: rnd(.3, .7), col: e.bot ? '#b5473d' : '#6fc3d9' });
     if (e === ents[0]) { G.place = alive + 1; endGame(false); }
     else if (alive === 1 && ents[0].alive) endGame(true);
@@ -690,68 +809,240 @@
     switchTo(p, l.k); toast('Arme : ' + WP[l.k].n); return true;
   }
 
+  // ---- IA des bots : ils se comportent comme de vrais joueurs
+  // Ils fuient la tempête avant qu'elle les touche, passent par les portes, pillent
+  // coffres et objets, s'équipent, se soignent, enquêtent sur les bruits et ne campent pas.
+  const WRANK = { pistol: 1, shotgun: 2, rifle: 3 };
+  function bldAt(x, y) {
+    for (let i = 0; i < blds.length; i++) { const b = blds[i]; if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return i; }
+    return -1;
+  }
+  function extDoors(i) {
+    const bl = blds[i]; if (bl.dr) return bl.dr; bl.dr = [];
+    const bx = bl.x + bl.w / 2, by = bl.y + bl.h / 2;
+    for (const o of obs) {
+      if (!o.door || o.bi !== i || o.lv) continue;
+      const cx = o.x + o.w / 2, cy = o.y + o.h / 2, hor = o.w > o.h;
+      const edge = hor ? (o.y < bl.y + WT + 2 || o.y + o.h > bl.y + bl.h - WT - 2) : (o.x < bl.x + WT + 2 || o.x + o.w > bl.x + bl.w - WT - 2);
+      if (!edge) continue;
+      const nx = hor ? 0 : (cx < bx ? -1 : 1), ny = hor ? (cy < by ? -1 : 1) : 0;
+      bl.dr.push({ cx, cy, ox: cx + nx * 48, oy: cy + ny * 48, ix: cx - nx * 42, iy: cy - ny * 42 });
+    }
+    return bl.dr;
+  }
+  // itinéraire : pour changer de bâtiment (ou y entrer / en sortir) on passe par une porte
+  function route(b, gx, gy) {
+    const A = b.lv ? -1 : bldAt(b.x, b.y), B = bldAt(gx, gy);
+    if (A === B) return { x: gx, y: gy };
+    if (A >= 0) {
+      let best = null, bs = 1e9;
+      for (const d of extDoors(A)) { const s = Math.hypot(d.cx - b.x, d.cy - b.y) + Math.hypot(d.ox - gx, d.oy - gy); if (s < bs) { bs = s; best = d; } }
+      if (!best) return { x: gx, y: gy };
+      return Math.hypot(best.cx - b.x, best.cy - b.y) > 60 && Math.hypot(best.ix - b.x, best.iy - b.y) > 30 ? { x: best.ix, y: best.iy } : { x: best.ox, y: best.oy };
+    }
+    let best = null, bs = 1e9;
+    for (const d of extDoors(B)) { const s = Math.hypot(d.ox - b.x, d.oy - b.y) + Math.hypot(d.ix - gx, d.iy - gy); if (s < bs) { bs = s; best = d; } }
+    if (!best) return { x: gx, y: gy };
+    return Math.hypot(best.cx - b.x, best.cy - b.y) > 70 && Math.hypot(best.ox - b.x, best.oy - b.y) > 30 ? { x: best.ox, y: best.oy } : { x: gx, y: gy };
+  }
+  function wallAt(x, y, lv) {
+    for (const o of obs) {
+      if (o.dead || o.open || o.door || (o.lv || 0) !== (lv || 0)) continue;
+      if (x > o.x - 12 && x < o.x + o.w + 12 && y > o.y - 12 && y < o.y + o.h + 12) return true;
+    }
+    return false;
+  }
+  // évite les murs : teste la direction voulue puis contourne du côté libre
+  function pickSteer(b, hd) {
+    const s = b.sd || 1, offs = [0, .5 * s, -.5 * s, s, -s, 1.5 * s, -1.5 * s, 2.2 * s];
+    for (const off of offs) {
+      let ok = true;
+      for (const d of [34, 68, 100]) if (wallAt(b.x + Math.cos(hd + off) * d, b.y + Math.sin(hd + off) * d, b.lv)) { ok = false; break; }
+      if (ok) { if (off) b.sd = off > 0 ? 1 : -1; return off; }
+    }
+    b.sd = -s; return 0;
+  }
+  function inZone(x, y, m) {
+    const t = Z.to || zone;
+    return Math.hypot(x - zone.cx, y - zone.cy) < zone.r - m && Math.hypot(x - t.cx, y - t.cy) < t.r + 200;
+  }
+  function findLoot(b, want, maxD) {
+    let best = null, bd = maxD * maxD;
+    for (const l of loot) {
+      if ((l.lv || 0) !== (b.lv || 0) || (b.lv && l.bi !== b.bi) || !want(l)) continue;
+      const d = (l.x - b.x) ** 2 + (l.y - b.y) ** 2;
+      if (d < bd && inZone(l.x, l.y, 80)) { bd = d; best = l; }
+    }
+    return best;
+  }
+  function findChest(b, maxD) {
+    let best = null, bd = maxD * maxD;
+    for (const c of chests) {
+      if (c.open || (c.lv || 0) !== (b.lv || 0) || (b.lv && c.bi !== b.bi)) continue;
+      const d = (c.x - b.x) ** 2 + (c.y - b.y) ** 2;
+      if (d < bd && inZone(c.x, c.y, 80)) { bd = d; best = c; }
+    }
+    return best;
+  }
+  function botTake(b, l) {
+    const k = l.k;
+    if (k === 'med') { if (b.hp >= b.mhp * .95) return false; b.hp = Math.min(b.mhp, b.hp + 35); return true; }
+    if (k === 'armor') { if (b.ar >= 100) return false; b.ar = Math.min(100, b.ar + 50); return true; }
+    if (k === 'ammo') {
+      let any = false;
+      for (const w in b.ws) { const cap = WP[w].mag * 8; if (b.ws[w].res < cap) { b.ws[w].res = Math.min(cap, b.ws[w].res + WP[w].mag); any = true; } }
+      return any;
+    }
+    if (b.ws[k]) { const cap = WP[k].mag * 8; if (b.ws[k].res >= cap) return false; b.ws[k].res = Math.min(cap, b.ws[k].res + WP[k].mag); return true; }
+    b.ws[k] = { mag: WP[k].mag, res: WP[k].mag * 3 };
+    if (WRANK[k] > WRANK[b.cur]) switchTo(b, k);
+    return true;
+  }
+  const usable = (b, k) => b.ws[k] && (b.ws[k].mag > 0 || b.ws[k].res > 0);
+
   function ai(b, dt) {
-    b.aiT -= dt;
+    const D = b.d, tz = Z.to || zone;
+    b.tm = (b.tm || 0) + dt; b.aiT -= dt;
+    if (b.lastSeen) { b.lastSeen.t -= dt; if (b.lastSeen.t <= 0) b.lastSeen = null; }
+
     if (b.aiT <= 0) {
-      b.aiT = (.3 + Math.random() * .2) * b.d.react;
+      b.aiT = (.3 + Math.random() * .2) * D.react;
       if (Math.hypot(b.x - b.lx, b.y - b.ly) < 10) b.stT += .35; else { b.stT = 0; b.lx = b.x; b.ly = b.y; }
-      if (b.stT > 1.5) { b.stT = 0; b.goingZone = false; const sa = rnd(0, 6.28); b.gx = clamp(b.x + Math.cos(sa) * 250, 60, MAP - 60); b.gy = clamp(b.y + Math.sin(sa) * 250, 60, MAP - 60); b.gT = 3; }
-      let best = null, bd = b.d.view * b.d.view;
+      let unstuck = false;
+      if (b.stT > 1.1) { b.stT = 0; b.sd = -(b.sd || 1); unstuck = true; b.escT = .9 + Math.random() * .6; b.escA = (b.hd || 0) + (Math.random() < .5 ? 1 : -1) * (1.3 + Math.random() * .9); }
+
+      // perception : vue (cône), bruit des pas et des tirs, même sans ligne de vue
+      let best = null, bd = D.view * D.view, heard = null, hdd = 1e9;
       for (const o of ents) {
         if (o === b || !o.alive || (o.lv || 0) !== (b.lv || 0) || (b.lv && o.bi !== b.bi)) continue;
-        const d = (o.x - b.x) ** 2 + (o.y - b.y) ** 2;
+        const d = (o.x - b.x) ** 2 + (o.y - b.y) ** 2, dd = Math.sqrt(d);
+        const hear = o.noisy ? D.hear : (o.shotT > 0 ? D.hear * 2.3 : 0);
         if (d < bd && los(b, o)) {
-          const dd = Math.sqrt(d), seen = Math.abs(angDiff(Math.atan2(o.y - b.y, o.x - b.x), b.a)) < b.d.cone;
-          const hear = o.noisy ? b.d.hear : (o.shotT > 0 ? b.d.hear * 2.3 : 0);
+          const seen = Math.abs(angDiff(Math.atan2(o.y - b.y, o.x - b.x), b.a)) < D.cone;
           if (seen || dd < hear || o === b.tgt) { bd = d; best = o; }
-        }
+        } else if (dd < hear && dd < hdd) { hdd = dd; heard = o; }
       }
-      b.tgt = best; b.aimErr = (Math.random() - .5) * 2 * b.d.err;
+      if (best) b.lastSeen = { x: best.x, y: best.y, t: 4 };
+      else if (heard && !b.lastSeen) b.lastSeen = { x: heard.x, y: heard.y, t: 5 };
+      b.tgt = best; b.aimErr = (Math.random() - .5) * 2 * D.err;
       if (Math.random() < .15) b.strafe *= -1;
+
+      // tempête : on part tôt, on ne reste jamais dedans
+      b.storm = Math.hypot(b.x - zone.cx, b.y - zone.cy) > zone.r - 45;
+      const dn = Math.hypot(b.x - tz.cx, b.y - tz.cy);
+      b.rush = b.storm || ((Z.stage === 'shrink' || Z.t < 20) && dn > tz.r * .8);
       b.gT -= .35;
-      const tz = Z.to || zone;
-      const outNext = Math.hypot(b.x - tz.cx, b.y - tz.cy) > tz.r * .85;
-      if (outNext && (b.gT <= 0 || !b.goingZone)) {
-        const a = rnd(0, 6.28), r = rnd(0, tz.r * .6);
-        b.gx = tz.cx + Math.cos(a) * r; b.gy = tz.cy + Math.sin(a) * r; b.gT = 6; b.goingZone = true;
-      } else if (!outNext && (b.gT <= 0 || b.goingZone)) {
-        const a = rnd(0, 6.28), r = rnd(100, 350);
-        b.gx = clamp(b.x + Math.cos(a) * r, 60, MAP - 60); b.gy = clamp(b.y + Math.sin(a) * r, 60, MAP - 60);
-        b.gT = rnd(3, 7); b.goingZone = false;
-        if (Math.random() < .4) {
-          let bb = null, bdist = 700 * 700;
-          for (const bl of blds) { const d = (bl.x + bl.w / 2 - b.x) ** 2 + (bl.y + bl.h / 2 - b.y) ** 2; if (d < bdist) { bdist = d; bb = bl; } }
-          if (bb && Math.hypot(bb.x + bb.w / 2 - zone.cx, bb.y + bb.h / 2 - zone.cy) < zone.r - 60) { b.gx = bb.x + WT + 20 + rnd(0, bb.w - 2 * WT - 40); b.gy = bb.y + WT + 20 + rnd(0, bb.h - 2 * WT - 40); }
+
+      if (b.lv) {
+        const bl = blds[b.bi];
+        if (b.rush || Math.hypot(bl.x + bl.w / 2 - zone.cx, bl.y + bl.h / 2 - zone.cy) > zone.r - 120) {
+          b.lv = 0; b.x = bl.st.x + bl.st.w / 2; b.y = bl.st.y + bl.st.h / 2; b.bi = -1; b.gT = 0; b.lootT = b.chestT = null;
         }
       }
-    }
-    if (b.lv) {
-      const bb = blds[b.bi];
-      if (Math.hypot(bb.x + bb.w / 2 - zone.cx, bb.y + bb.h / 2 - zone.cy) > zone.r - 120) { b.lv = 0; b.x = bb.st.x + bb.st.w / 2; b.y = bb.st.y + bb.st.h / 2; b.bi = -1; }
-      else if (b.gT <= 0 || b.gx < bb.x || b.gx > bb.x + bb.w || b.gy < bb.y || b.gy > bb.y + bb.h) {
-        for (let t = 0; t < 10; t++) {
-          const x = rnd(bb.x + WT + 20, bb.x + bb.w - WT - 20), y = rnd(bb.y + WT + 20, bb.y + bb.h - WT - 20);
-          if (!inObs(x, y, 16, 1)) { b.gx = x; b.gy = y; break; }
+
+      if (b.rush) {
+        if (!b.goingZone || b.gT <= 0 || unstuck) {
+          for (let t = 0; t < 12; t++) {
+            const a = rnd(0, 6.283), r = rnd(0, tz.r * .55), x = tz.cx + Math.cos(a) * r, y = tz.cy + Math.sin(a) * r;
+            if (!inObs(x, y, 24, 0) && bldAt(x, y) < 0) { b.gx = clamp(x, 60, MAP - 60); b.gy = clamp(y, 60, MAP - 60); break; }
+          }
+          b.gT = 8; b.goingZone = true; b.lootT = b.chestT = null;
         }
-        b.gT = rnd(3, 6); b.goingZone = false;
+      } else if (b.gT <= 0 || b.goingZone || unstuck) {
+        b.goingZone = false; b.lootT = b.chestT = null;
+        const own = b.ws, rk = WRANK[b.cur];
+        let pick = null;
+        if (b.hp < b.mhp * .65) pick = findLoot(b, l => l.k === 'med', 700);
+        if (!pick && b.ar < 40) pick = findLoot(b, l => l.k === 'armor', 650);
+        if (!pick) pick = findLoot(b, l => WP[l.k] && (!own[l.k] || WRANK[l.k] > rk), 650);
+        if (!pick) { const c = findChest(b, 700); if (c) { b.chestT = c; b.gx = c.x; b.gy = c.y; } }
+        if (!pick && !b.chestT && Object.keys(own).some(k => own[k].res < WP[k].mag * 2)) pick = findLoot(b, l => l.k === 'ammo' || l.k === b.cur, 500);
+        if (pick) { b.lootT = pick; b.gx = pick.x; b.gy = pick.y; b.gT = rnd(5, 8); }
+        else if (b.chestT) b.gT = rnd(5, 8);
+        else if (b.lv) {
+          const bl = blds[b.bi];
+          for (let t = 0; t < 10; t++) {
+            const x = rnd(bl.x + WT + 20, bl.x + bl.w - WT - 20), y = rnd(bl.y + WT + 20, bl.y + bl.h - WT - 20);
+            if (!inObs(x, y, 16, 1)) { b.gx = x; b.gy = y; break; }
+          }
+          b.gT = rnd(3, 6);
+        } else {
+          // exploration : un bâtiment pas encore fouillé, sinon un point au hasard
+          b.vis = b.vis || new Set();
+          let bb = -1, bdist = 1100 * 1100;
+          for (let i = 0; i < blds.length; i++) {
+            if (b.vis.has(i)) continue;
+            const bl = blds[i], d = (bl.x + bl.w / 2 - b.x) ** 2 + (bl.y + bl.h / 2 - b.y) ** 2;
+            if (d < bdist && inZone(bl.x + bl.w / 2, bl.y + bl.h / 2, 120)) { bdist = d; bb = i; }
+          }
+          if (bb >= 0 && Math.random() < .75) {
+            const bl = blds[bb]; b.vis.add(bb);
+            b.gx = bl.x + WT + 24 + rnd(0, bl.w - 2 * WT - 48); b.gy = bl.y + WT + 24 + rnd(0, bl.h - 2 * WT - 48); b.gT = rnd(6, 11);
+          } else {
+            for (let t = 0; t < 8; t++) {
+              const a = rnd(0, 6.283), r = rnd(150, 450), x = clamp(b.x + Math.cos(a) * r, 60, MAP - 60), y = clamp(b.y + Math.sin(a) * r, 60, MAP - 60);
+              if (inZone(x, y, 100) && !inObs(x, y, 24, 0)) { b.gx = x; b.gy = y; break; }
+            }
+            b.gT = rnd(3, 6);
+          }
+        }
       }
+      b.steer = b.hd === undefined ? 0 : pickSteer(b, b.hd);
     }
-    let mx = 0, my = 0, sp = b.d.spd;
-    if (b.tgt && b.tgt.alive) {
-      const dx = b.tgt.x - b.x, dy = b.tgt.y - b.y, d = Math.hypot(dx, dy) || 1;
+
+    // ramassage et coffres
+    for (let i = loot.length - 1; i >= 0; i--) {
+      const l = loot[i];
+      if ((l.lv || 0) !== (b.lv || 0) || (b.lv && l.bi !== b.bi)) continue;
+      if ((l.x - b.x) ** 2 + (l.y - b.y) ** 2 < 28 * 28 && botTake(b, l)) { loot.splice(i, 1); if (b.lootT === l) { b.lootT = null; b.gT = Math.min(b.gT, .7); } }
+    }
+    if (b.chestT) {
+      if (b.chestT.open) { b.chestT = null; b.gT = 0; }
+      else if ((b.chestT.x - b.x) ** 2 + (b.chestT.y - b.y) ** 2 < 38 * 38) { openChest(b.chestT, null, true); b.chestT = null; b.gT = .5; }
+    }
+
+    // déplacement
+    const t = b.tgt;
+    let mx = 0, my = 0, sp = D.spd;
+    if (t && t.alive) {
+      const dx = t.x - b.x, dy = t.y - b.y, d = Math.hypot(dx, dy) || 1;
+      b.swT = (b.swT === undefined ? 0 : b.swT) - dt;
+      if (b.swT <= 0) {
+        b.swT = 1.5;
+        const want = d < 170 && usable(b, 'shotgun') ? 'shotgun' : usable(b, 'rifle') ? 'rifle' : usable(b, 'pistol') ? 'pistol' : usable(b, 'shotgun') ? 'shotgun' : b.cur;
+        if (want !== b.cur) switchTo(b, want);
+      }
       const diff = angDiff(Math.atan2(dy, dx) + b.aimErr, b.a);
-      b.a += clamp(diff, -b.d.turn * dt, b.d.turn * dt);
+      b.a += clamp(diff, -D.turn * dt, D.turn * dt);
       const pref = b.cur === 'shotgun' ? 140 : b.cur === 'rifle' ? 280 : 200;
-      if (d > pref + 40) { mx = dx / d; my = dy / d; }
+      if (b.hp < b.mhp * .3) { mx = -dx / d - dy / d * b.strafe * .6; my = -dy / d + dx / d * b.strafe * .6; }   // blessé : il recule
+      else if (d > pref + 40) { mx = dx / d; my = dy / d; }
       else if (d < pref - 60) { mx = -dx / d; my = -dy / d; }
       else { mx = -dy / d * b.strafe; my = dx / d * b.strafe; }
       if (Math.abs(diff) < .25 && d < WP[b.cur].rng) fire(b);
     } else {
-      const dx = b.gx - b.x, dy = b.gy - b.y, d = Math.hypot(dx, dy);
-      if (d > 20) { mx = dx / d; my = dy / d; b.a += clamp(angDiff(Math.atan2(dy, dx), b.a), -5 * dt, 5 * dt); }
+      const s = b.ws[b.cur];
+      if (b.rl <= 0 && s && s.mag < WP[b.cur].mag * .5 && s.res > 0) reload(b);
+      let dest = { x: b.gx, y: b.gy };
+      if (!b.rush && b.lastSeen && !b.lootT) dest = b.lastSeen;      // va voir d'où vient le bruit
+      const wp = b.lv ? dest : route(b, dest.x, dest.y);
+      const dx = wp.x - b.x, dy = wp.y - b.y, d = Math.hypot(dx, dy);
+      if (d > (wp.x === dest.x && wp.y === dest.y ? 22 : 6)) { mx = dx / d; my = dy / d; b.a += clamp(angDiff(Math.atan2(dy, dx), b.a), -5 * dt, 5 * dt); sp = D.spd * (b.rush || b.lastSeen ? 1 : .85); }
+      else {
+        b.a += Math.sin(b.tm * 1.7) * 1.1 * dt;                         // il regarde autour de lui, puis repart
+        if (b.lastSeen && dest === b.lastSeen) b.lastSeen = null;
+        if (!b.rush && !b.lootT && !b.chestT && b.gT > 1.2) b.gT = 1.2;
+      }
     }
-    const dz = Math.hypot(b.x - zone.cx, b.y - zone.cy);
-    if (dz > zone.r - 40 && !b.lv) { mx = (zone.cx - b.x) / dz; my = (zone.cy - b.y) / dz; sp = b.d.spd + 40; }
+    if (b.escT > 0) { b.escT -= dt; mx = Math.cos(b.escA); my = Math.sin(b.escA); b.steer = 0; }   // se dégage d'un coin
+    const m = Math.hypot(mx, my);
+    if (m > .01) {
+      if (m > 1) { mx /= m; my /= m; }
+      b.hd = Math.atan2(my, mx);
+      const ang = b.hd + (b.steer || 0), k = Math.min(1, m);
+      mx = Math.cos(ang) * k; my = Math.sin(ang) * k;
+    }
+    if (b.storm) sp += 45;
     b.x += mx * sp * dt; b.y += my * sp * dt; collide(b);
   }
 
@@ -830,6 +1121,7 @@
   function update(dt) {
     const p = ents[0];
     G.time += dt;
+    if (ONLINE) netStep(dt);
 
     // zone
     if (Z.p < PH.length) {
@@ -870,7 +1162,7 @@
       if (M.down) fire(p); }
       for (let i = loot.length - 1; i >= 0; i--) {
         const l2 = loot[i];
-        if ((l2.x - p.x) ** 2 + (l2.y - p.y) ** 2 < (p.r + 14) ** 2 && (l2.lv || 0) === (p.lv || 0) && (!p.lv || l2.bi === p.bi) && take(p, l2)) loot.splice(i, 1);
+        if ((l2.x - p.x) ** 2 + (l2.y - p.y) ** 2 < (p.r + 14) ** 2 && (l2.lv || 0) === (p.lv || 0) && (!p.lv || l2.bi === p.bi) && take(p, l2)) { loot.splice(i, 1); if (ONLINE && l2.id) netEmit('pk', { id: l2.id }); }
       }
     }
 
@@ -886,7 +1178,7 @@
         e.rl -= dt;
         if (e.rl <= 0) { const s = e.ws[e.rlW], w = WP[e.rlW], t = Math.min(w.mag - s.mag, s.res); s.mag += t; s.res -= t; }
       }
-      if (!e.remote && Math.hypot(e.x - zone.cx, e.y - zone.cy) > zone.r) hurt(e, ZDMG[Math.min(Z.p, ZDMG.length - 1)] * dt, null);
+      if (Math.hypot(e.x - zone.cx, e.y - zone.cy) > zone.r) hurt(e, ZDMG[Math.min(Z.p, ZDMG.length - 1)] * dt, null);
     }
 
     // balles
@@ -898,10 +1190,10 @@
         b.x += b.vx * dt / ns; b.y += b.vy * dt / ns;
         const ho = hitObs(b.x, b.y, b.lv);
         if (ho || b.x < 0 || b.y < 0 || b.x > MAP || b.y > MAP) {
-          if (ho && ho.door) { ho.hp -= b.dmg; if (ho.hp <= 0) breakDoor(ho, b.own); }
+          if (ho && ho.door && !b.vis) { ho.hp -= b.dmg; if (ho.hp <= 0) breakDoor(ho, b.own); }
           dead = true; break;
         }
-        if (!b.visualOnly) for (const e of ents) {
+        for (const e of (b.vis ? [] : ents)) {
           if (!e.alive || e === b.own || (e.lv || 0) !== b.lv || (b.lv && e.bi !== b.own.bi)) continue;
           if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 2) ** 2) {
             hurt(e, b.dmg, b.own); dead = true;
@@ -936,10 +1228,12 @@
     const cx = p.x - W / 2, cy = p.y - H / 2;
     ctx.save(); ctx.translate(-cx, -cy);
 
-    ctx.fillStyle = '#151a1c'; ctx.fillRect(0, 0, MAP, MAP);
-    ctx.fillStyle = 'rgba(0,0,0,.22)';
-    for (const c of craters) { if (c.x + c.r < cx || c.x - c.r > cx + W || c.y + c.r < cy || c.y - c.r > cy + H) continue; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 6.283); ctx.fill(); }
-    ctx.strokeStyle = 'rgba(231,225,211,.04)'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.fillStyle = MAPT.pat || '#151a1c'; ctx.fillRect(0, 0, MAP, MAP);
+    ctx.fillStyle = 'rgba(0,0,0,.26)';
+    for (const c of craters) { if (c.x + c.r < cx || c.x - c.r > cx + W || c.y + c.r < cy || c.y - c.r > cy + H) continue; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 6.283); ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 6.283); ctx.stroke(); }
+    if (MAPT.th) for (const d of MAPT.decor) { if (d.x < cx - 40 || d.x > cx + W + 40 || d.y < cy - 40 || d.y > cy + H + 40) continue; drawDecor(d, MAPT.th); }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = 'rgba(231,225,211,.03)'; ctx.lineWidth = 1; ctx.beginPath();
     for (let x = Math.floor(cx / 100) * 100; x < cx + W; x += 100) if (x >= 0 && x <= MAP) { ctx.moveTo(x, Math.max(0, cy)); ctx.lineTo(x, Math.min(MAP, cy + H)); }
     for (let y = Math.floor(cy / 100) * 100; y < cy + H; y += 100) if (y >= 0 && y <= MAP) { ctx.moveTo(Math.max(0, cx), y); ctx.lineTo(Math.min(MAP, cx + W), y); }
     ctx.stroke();
@@ -1031,13 +1325,14 @@
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(e.x + 3, e.y + 4, e.r, 0, 6.283); ctx.fill();
       ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.a);
       ctx.fillStyle = '#20262a'; ctx.fillRect(6, -3.5, 18, 7);
-      ctx.fillStyle = e.bot ? '#a8443a' : '#6fc3d9'; ctx.beginPath(); ctx.arc(0, 0, e.r, 0, 6.283); ctx.fill();
+      ctx.fillStyle = e.bot ? '#a8443a' : e.rem ? '#9a5ad0' : '#6fc3d9'; ctx.beginPath(); ctx.arc(0, 0, e.r, 0, 6.283); ctx.fill();
       ctx.strokeStyle = '#0c0e0f'; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.fillStyle = e.bot ? '#2a1210' : '#0f2a33'; ctx.beginPath(); ctx.arc(3, 0, 6, 0, 6.283); ctx.fill();
+      ctx.fillStyle = e.bot ? '#2a1210' : e.rem ? '#1d1030' : '#0f2a33'; ctx.beginPath(); ctx.arc(3, 0, 6, 0, 6.283); ctx.fill();
       if (e.ar > 0) { ctx.strokeStyle = '#9fd4e6'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, e.r + 1, -1.1, 1.1); ctx.stroke(); }
       if (e.kflash > 0) { ctx.strokeStyle = '#e7e1d3'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, e.r + 16, -.8, .8); ctx.stroke(); }
       if (e.flash > 0) { ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(28, 0, 6 + Math.random() * 3, 0, 6.283); ctx.fill(); }
       ctx.restore();
+      if (e.rem) { ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#c9a8ee'; ctx.fillText(e.name, e.x, e.y - 26); }
       if (e.bot && e.hp < e.mhp) {
         ctx.fillStyle = '#0c0e0f'; ctx.fillRect(e.x - 16, e.y - 26, 32, 5);
         ctx.fillStyle = '#b5473d'; ctx.fillRect(e.x - 15, e.y - 25, 30 * e.hp / e.mhp, 3);
@@ -1118,7 +1413,8 @@
   function showOver() {
     G.state = 'over';
     $('otitle').textContent = G.win ? 'Victoire' : 'Éliminé';
-    $('otag').textContent = (G.win ? 'Dernier survivant' : 'Rapport de mission') + ' · ' + MODES[SAVE.mode].n + ' · ' + DIFF[SAVE.diff].n;
+    $('otag').textContent = (G.win ? 'Dernier survivant' : 'Rapport de mission') + ' · ' + (ONLINE ? 'En ligne · ' + NET.players.length + ' joueurs' : MODES[SAVE.mode].n + ' · ' + DIFF[SAVE.diff].n) + (MAPT.th ? ' · ' + MAPT.th.n : '');
+    $('again').textContent = ONLINE ? 'Retour au salon' : 'Rejouer';
     $('oplace').textContent = '#' + G.place;
     $('okills').textContent = ents[0].kills;
     $('otime').textContent = fmt(G.time);
@@ -1126,33 +1422,13 @@
     $('again').focus();
   }
 
-  let onlineGame = false;
-  function start(options) {
-    options = options || {};
-    onlineGame = !!options.online;
-    if (options.seed) {
-      const originalRandom = Math.random; let seed = options.seed >>> 0;
-      Math.random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-      try { init(); } finally { Math.random = originalRandom; }
-    } else init();
-    if (onlineGame && Array.isArray(options.players)) {
-      const roster = options.players;
-      const self = roster.find(v => v.id === options.selfId);
-      ents = [ents[0]];
-      const me = ents[0];
-      if (self) { const spawn = freePoint(); me.x = spawn.x; me.y = spawn.y; me.name = self.name; me.playerId = self.id; me.team = self.team; }
-      me.bot = false; me.remote = false; me.hp = me.mhp = 100; me.ar = 0;
-      for (const item of roster) {
-        if (item.id === options.selfId) continue;
-        const other = mkEnt(item.x, item.y, false, item.name, 'pistol');
-        other.remote = true; other.playerId = item.id; other.team = item.team; other.hp = other.mhp = 100;
-        ents.push(other);
-      }
-      G.online = true;
-    } else G.online = false;
+  function start() {
+    ONLINE = false; NET.inMatch = false;
+    init();
     G.state = 'play';
     $('menu').hidden = true; $('over').hidden = true; $('lobby').hidden = true;
     cv.focus();
+    toast('Carte : ' + MAPT.th.n);
   }
   // ---- compte (pseudo + mot de passe, géré par le serveur : /api/auth/*)
   const AUTH = { user: null, reg: false, busy: false };
@@ -1203,8 +1479,8 @@
   $('alogout').addEventListener('click', async () => { try { await api('/api/auth/logout', {}); } catch (_) {} AUTH.user = null; $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
   $('go').addEventListener('click', () => enter(true));
   $('gopc').addEventListener('click', () => enter(false));
-  $('again').addEventListener('click', start);
-  $('quit').addEventListener('click', showLobby);
+  $('again').addEventListener('click', () => { if (ONLINE) leaveMatch(); else start(); });
+  $('quit').addEventListener('click', () => { if (ONLINE) leaveMatch(); else showLobby(); });
   $('play').addEventListener('click', start);
   $('lback').addEventListener('click', () => { $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
 
@@ -1223,9 +1499,122 @@
     $('modes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-m="' + k + '" aria-pressed="' + (s.mode === k) + '"><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
     $('dnote').textContent = DIFF[s.diff].n + ' : ' + DIFF[s.diff].desc;
+    $('net').querySelectorAll('[data-n]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.n === '1') === !!s.online)));
+    $('offopts').hidden = !!s.online; $('onl').hidden = !s.online; $('play').hidden = !!s.online;
+    if (s.online) { if (AUTH.user && !$('nname').value) $('nname').value = AUTH.user; connectNet(); renderNet(); }
   }
+  $('net').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) { SAVE.online = b.dataset.n === '1'; persist(); renderLobby(); } });
   $('modes').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) { SAVE.mode = b.dataset.m; persist(); renderLobby(); } });
   $('diffs').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if (b) { SAVE.diff = +b.dataset.d; persist(); renderLobby(); } });
+
+  // ---- mode en ligne (Socket.IO) : recherche de partie, salons, relais de partie
+  const nameOf = () => ($('nname').value || AUTH.user || '').trim();
+  function connectNet() {
+    if (NET.sock) return;
+    if (typeof io === 'undefined') { NET.err = "Serveur de jeu introuvable : ouvre le jeu depuis l'adresse de ton serveur (Render)."; renderNet(); return; }
+    const s = NET.sock = io();
+    s.on('connect', () => {
+      NET.ok = true; NET.id = s.id; NET.err = '';
+      s.emit('hello', { name: nameOf() }, r => { if (r) { NET.name = r.name; NET.pop = r.pop || NET.pop; $('nname').value = r.name; $('nname').readOnly = !!r.account; } renderNet(); });
+      renderNet();
+    });
+    s.on('disconnect', () => { NET.ok = false; NET.mm = null; NET.party = null; if (NET.inMatch && !G.over) toast('Connexion perdue'); renderNet(); });
+    s.on('connect_error', () => { NET.err = 'Connexion au serveur impossible.'; renderNet(); });
+    s.on('pop', q => { NET.pop = q.n; renderNet(); });
+    s.on('mm', m => { NET.mm = m; renderNet(); });
+    s.on('party', q => { NET.party = q; renderNet(); });
+    s.on('match-start', startOnline);
+    s.on('st', onSt); s.on('shot', onShot); s.on('door', onDoor); s.on('pk', onPk); s.on('ch', onCh);
+    s.on('dead', onDead); s.on('hit', onHit); s.on('gone', onGone); s.on('match-end', onEnd);
+  }
+  function renderNet() {
+    if ($('onl').hidden) return;
+    const st = $('nstat');
+    st.textContent = NET.err ? NET.err : NET.ok ? 'Connecté au serveur · ' + NET.pop + ' joueur' + (NET.pop > 1 ? 's' : '') + ' en ligne' : 'Connexion au serveur…';
+    st.style.color = NET.err ? '#ff8c78' : '';
+    const inParty = !!NET.party, searching = !!NET.mm, off = !NET.ok;
+    for (const id of ['nfind', 'ncreate', 'njoin']) $(id).disabled = off || inParty || searching;
+    $('nsearch').hidden = !searching;
+    if (searching) $('nsn').textContent = NET.mm.n + ' joueur' + (NET.mm.n > 1 ? 's' : '') + ' en recherche · ' + (NET.mm.eta != null ? 'départ dans ' + NET.mm.eta + ' s' : 'il faut au moins ' + NET.mm.min + ' joueurs pour démarrer');
+    $('nparty').hidden = !inParty;
+    if (inParty) {
+      $('npcode').textContent = NET.party.code;
+      const pl = $('nplist'); pl.textContent = '';
+      for (const m of NET.party.members) { const d = document.createElement('div'); d.textContent = (m.id === NET.party.host ? '★ ' : '· ') + m.name + (m.id === NET.id ? ' (toi)' : ''); pl.appendChild(d); }
+      const host = NET.party.host === NET.id;
+      $('nstart').hidden = !host; $('nstart').disabled = NET.party.members.length < 2; $('nwait').hidden = host;
+    }
+  }
+  $('nfind').addEventListener('click', () => { if (!NET.ok) return; NET.mm = { n: 1, min: 2, eta: null }; NET.sock.emit('mm-join', { name: nameOf() }); renderNet(); });
+  $('ncancel').addEventListener('click', () => { if (NET.sock) NET.sock.emit('mm-leave'); NET.mm = null; renderNet(); });
+  $('ncreate').addEventListener('click', () => { if (!NET.ok) return; NET.sock.emit('party-create', { name: nameOf() }, r => { if (r && r.ok) NET.party = r.party; else { NET.err = (r && r.error) || 'Impossible de créer le salon.'; } renderNet(); }); });
+  $('njoin').addEventListener('click', () => {
+    if (!NET.ok) return; const code = $('ncode').value.trim();
+    if (!code) { NET.err = 'Entre le code du salon.'; renderNet(); return; }
+    NET.err = ''; NET.sock.emit('party-join', { code, name: nameOf() }, r => { if (r && r.ok) { NET.party = r.party; NET.err = ''; } else NET.err = (r && r.error) || 'Salon introuvable.'; renderNet(); });
+  });
+  $('nleave').addEventListener('click', () => { if (NET.sock) NET.sock.emit('party-leave'); NET.party = null; renderNet(); });
+  $('nstart').addEventListener('click', () => { if (NET.sock) NET.sock.emit('party-start'); });
+
+  function startOnline(m) {
+    if (!m || !Array.isArray(m.players)) return;
+    ONLINE = true; NET.inMatch = true; NET.players = m.players; NET.seed = m.seed | 0; NET.mm = null; NET.party = null; NET.cd = m.startIn || 5;
+    ZR = mulberry((NET.seed ^ 0x5bd1e995) | 0);
+    const me = m.players.find(q => q.id === NET.id); NET.name = me ? me.name : NET.name;
+    init();
+    G.state = 'play';
+    $('menu').hidden = true; $('over').hidden = true; $('lobby').hidden = true; $('auth').hidden = true;
+    cv.focus(); toast('Carte : ' + MAPT.th.n);
+  }
+  function leaveMatch() {
+    if (NET.sock && NET.inMatch) NET.sock.emit('leave-match');
+    NET.inMatch = false; ONLINE = false; $('ncount').hidden = true;
+    init(); showLobby();
+  }
+  const remById = id => ents.find(e => e.nid === id);
+  function netStep(dt) {
+    for (const e of ents) if (e.rem && e.alive && e.seen) { const k = Math.min(1, dt * 14); e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; e.a += angDiff(e.ta, e.a) * k; }
+    NET.sendT -= dt;
+    const p = ents[0];
+    if (NET.sendT <= 0 && p.alive && NET.sock && NET.ok) {
+      NET.sendT = .066;
+      NET.sock.volatile.emit('st', { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, a: Math.round(p.a * 100) / 100, l: p.lv || 0, b: p.lv ? p.bi : -1, c: p.cur, r: p.noisy ? 1 : 0, ar: Math.round(p.ar) });
+    }
+  }
+  function onSt(m) {
+    if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return;
+    if (!e.seen) { e.x = m.x; e.y = m.y; e.a = m.a; e.seen = true; }
+    e.tx = m.x; e.ty = m.y; e.ta = m.a; e.lv = m.l; e.bi = m.b;
+    if (WP[m.c]) { e.cur = m.c; if (!e.ws[m.c]) e.ws[m.c] = { mag: 9, res: 9 }; }
+    e.ar = m.ar; e.noisy = !!m.r;
+  }
+  function onShot(m) {
+    if (!NET.inMatch || !m) return; const e = remById(m.i), w = e && WP[m.w]; if (!e || !e.alive || !w) return;
+    e.flash = .06; e.shotT = 1.5;
+    for (let i = 0; i < w.pel; i++) {
+      const a = m.a + (Math.random() - .5) * 2 * w.spread;
+      bullets.push({ x: m.x, y: m.y, vx: Math.cos(a) * w.spd, vy: Math.sin(a) * w.spd, dmg: 0, own: e, lv: e.lv || 0, life: w.rng / w.spd, col: w.col, vis: true });
+    }
+  }
+  function onDoor(m) {
+    if (!NET.inMatch || !m) return; const o = obs[m.i]; if (!o || !o.door) return;
+    if (m.t === 'o') o.open = true; else { NET.applying = true; breakDoor(o, null); NET.applying = false; }
+  }
+  function onPk(m) { if (!NET.inMatch || !m) return; const i = loot.findIndex(l => l.id === m.id); if (i >= 0) loot.splice(i, 1); }
+  function onCh(m) { if (!NET.inMatch || !m) return; const c = chests[m.i]; if (c && !c.open) openChest(c, m.s, true); }
+  function onDead(m) {
+    if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return;
+    e.dropsIn = (m.dr || []).map(d => ({ x: d.x, y: d.y, k: d.k, lv: d.lv ? 1 : 0, bi: d.bi, id: d.id }));
+    kill(e, m.b === NET.id ? ents[0] : (m.b ? remById(m.b) : null));
+  }
+  function onHit(m) {
+    if (!NET.inMatch || !m || G.over || !ents[0].alive) return;
+    const by = remById(m.f);
+    if (m.k) hurtLocal(ents[0], 999, by); else hurtLocal(ents[0], Math.min(160, +m.d || 0), by);
+  }
+  function onGone(m) { if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return; e.quit = true; kill(e, null); }
+  function onEnd(m) { if (NET.inMatch && m && m.w === NET.id && !G.over && ents[0].alive) endGame(true); }
+
   function showLobby() {
     G.state = 'lobby'; G.over = false;
     $('menu').hidden = true; $('over').hidden = true; $('auth').hidden = true; $('lobby').hidden = false;
@@ -1237,110 +1626,17 @@
   let last = performance.now();
   function loop(now) {
     const dt = Math.min(.05, (now - last) / 1000); last = now;
-    if (G.state === 'play') update(dt);
+    if (G.state === 'play') {
+      if (ONLINE && NET.cd > 0) { NET.cd -= dt; $('ncount').hidden = false; $('ncount').textContent = 'Départ dans ' + Math.max(1, Math.ceil(NET.cd)); netStep(dt); }
+      else { if (!$('ncount').hidden) $('ncount').hidden = true; update(dt); }
+    }
     draw();
     if ((G.hudT -= dt) <= 0) { G.hudT = .08; hud(); }
     requestAnimationFrame(loop);
   }
   init();
-  window.__zm = { G, get ents() { return ents; }, get obs() { return obs; }, get blds() { return blds; }, get loot() { return loot; }, get chests() { return chests; }, start, update, get zone() { return zone; },
-    startOnline: (payload, selfId) => { SAVE.mode = 'br'; SAVE.diff = 2; start({ online:true, seed:payload.seed, players:payload.players, selfId }); },
-    applyRemoteState: state => { const e = ents && ents.find(v => v.remote && v.playerId === state.id); if (!e) return; e.x = state.x; e.y = state.y; e.a = state.a; e.hp = state.hp; e.alive = state.alive; e.lv = state.lv || 0; e.bi = state.bi == null ? -1 : state.bi; },
-    remoteShot: shot => { const e = ents && ents.find(v => v.remote && v.playerId === shot.id); if (!e || !e.alive) return; e.a = shot.a; e.flash = .08; const w = WP[shot.weapon] || WP.pistol; bullets.push({ x:shot.x + Math.cos(shot.a)*22, y:shot.y + Math.sin(shot.a)*22, vx:Math.cos(shot.a)*w.spd, vy:Math.sin(shot.a)*w.spd, dmg:w.dmg, own:e, lv:e.lv||0, life:w.rng/w.spd, col:w.col, visualOnly:true }); },
-    remoteDamage: hit => { const target = ents && ents.find(v => v.playerId === hit.target); if (!target) return; target.hp = hit.hp; target.alive = hit.alive; const attacker = ents.find(v => v.playerId === hit.attacker); if (!hit.alive && attacker) attacker.kills++; if (!hit.alive) { feed((attacker ? attacker.name : 'Combattant') + '  ›  ' + target.name, attacker === ents[0]); if (target === ents[0]) { G.over = true; G.win = false; G.place = Math.max(1, ents.filter(v => v.alive).length + 1); G.endT = .5; } } }
-  };
+  window.__zm = { G, get ents() { return ents; }, get obs() { return obs; }, get blds() { return blds; }, get loot() { return loot; }, get chests() { return chests; }, start, update, get zone() { return zone; } };
   requestAnimationFrame(loop);
-})();
-</script>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  const info = $('roomInfo'), content = $('roomContent'), codeBox = $('roomCode');
-  if (!window.io) { info.textContent = "Service multijoueur indisponible : vérifie le déploiement du serveur."; return; }
-  const socket = window.io({transports:['websocket','polling'], auth:{name:document.getElementById('aname').textContent || 'Combattant'}});
-  let roomCode = null, myId = null, myTeam = null, roomHost = false, onlineStarted = false;
-  window.__zmSocket = socket;
-  const setInfo = msg => { info.textContent = msg; };
-  function appendChat(message, system=false) {
-    const line = document.createElement('div');
-    if (system) line.className = 'sys';
-    const who = document.createElement('b'); who.textContent = system ? 'INFO' : message.name;
-    const body = document.createElement('span'); body.textContent = ' : ' + message.text;
-    line.append(who, body); $('roomChatLog').append(line);
-    $('roomChatLog').scrollTop = $('roomChatLog').scrollHeight;
-    while ($('roomChatLog').children.length > 60) $('roomChatLog').firstChild.remove();
-  }
-  function showPlayers(state) {
-    myId = socket.id;
-    $('roomCount').textContent = state.count + '/' + state.max;
-    $('roomPlayers').replaceChildren();
-    state.players.forEach(p => {
-      const row = document.createElement('div'); row.className = 'player-pill';
-      const name = document.createElement('span'); name.textContent = p.name + (p.id === state.hostId ? ' ★' : '');
-      const team = document.createElement('b'); team.className = p.team === 'A' ? 'team-a' : 'team-b'; team.textContent = 'Équipe ' + p.team;
-      row.append(name, team); $('roomPlayers').append(row);
-      if (p.id === socket.id) myTeam = p.team;
-    });
-    roomHost = state.hostId === socket.id;
-    $('roomStart').hidden = !roomHost || state.started;
-    $('roomStart').disabled = state.count < 1;
-    $('teamA').setAttribute('aria-pressed', String(myTeam === 'A'));
-    $('teamB').setAttribute('aria-pressed', String(myTeam === 'B'));
-  }
-  function joined(result) {
-    if (!result || !result.ok) { setInfo(result && result.error || 'Impossible de rejoindre ce salon.'); return; }
-    roomCode = result.code; myId = result.playerId;
-    codeBox.hidden = false; codeBox.textContent = roomCode;
-    content.hidden = false; $('roomActions').hidden = true;
-    $('roomChatLog').replaceChildren();
-    setInfo('Salon privé actif. Partage ce code avec tes amis.');
-  }
-  socket.on('connect', () => setInfo('Connecté au service multijoueur. Crée un salon ou saisis un code.'));
-  socket.on('connect_error', () => setInfo('Connexion multijoueur impossible. Réessaie dans un instant.'));
-  socket.on('disconnect', () => { if (roomCode) setInfo('Connexion perdue. Reconnecte-toi pour retrouver le salon.'); });
-  socket.on('lobby-state', state => {
-    if (roomCode !== state.code) {
-      roomCode = state.code; codeBox.hidden = false; codeBox.textContent = roomCode;
-      content.hidden = false; $('roomActions').hidden = true;
-      setInfo('Salon privé actif. Partage ce code avec tes amis.');
-    }
-    showPlayers(state);
-  });
-  socket.on('room-game-start', payload => {
-    if (!payload || !window.__zm) return;
-    onlineStarted = true;
-    $('lobby').hidden = true; $('menu').hidden = true;
-    window.__zm.startOnline(payload, socket.id);
-    setInfo('Partie en ligne lancée. Bonne chance !');
-  });
-  socket.on('player-state', state => { if (window.__zm && onlineStarted) window.__zm.applyRemoteState(state); });
-  socket.on('player-shot', shot => { if (window.__zm && onlineStarted) window.__zm.remoteShot(shot); });
-  socket.on('player-damage', hit => { if (window.__zm && onlineStarted) window.__zm.remoteDamage(hit); });
-  socket.on('chat-message', msg => appendChat(msg));
-  socket.on('system-message', msg => appendChat(msg,true));
-  $('roomCreate').addEventListener('click', () => socket.emit('create-room', joined));
-  $('roomJoin').addEventListener('click', () => socket.emit('join-room', $('roomCodeInput').value.trim().toUpperCase(), joined));
-  $('roomCodeInput').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); });
-  $('teamA').addEventListener('click', () => socket.emit('choose-team','A',r => { if (r && r.error) setInfo(r.error); }));
-  $('teamB').addEventListener('click', () => socket.emit('choose-team','B',r => { if (r && r.error) setInfo(r.error); }));
-  $('roomStart').addEventListener('click', () => socket.emit('start-room-game', r => { if (!r || !r.ok) setInfo(r && r.error || 'Impossible de lancer la partie.'); }));
-  $('roomLeave').addEventListener('click', () => {
-    socket.emit('leave-room'); roomCode = null; myTeam = null;
-    content.hidden = true; codeBox.hidden = true; $('roomActions').hidden = false;
-    setInfo('Tu as quitté le salon.');
-  });
-  $('roomChatForm').addEventListener('submit', e => {
-    e.preventDefault(); const input = $('roomChatInput'), value = input.value.trim();
-    if (value && roomCode) { socket.emit('chat-message',value); input.value = ''; }
-  });
-  setInterval(() => {
-    if (!onlineStarted || !window.__zm || !window.__zm.ents || !socket.connected) return;
-    const p = window.__zm.ents[0];
-    if (!p) return;
-    socket.volatile.emit('player-state', { x:p.x, y:p.y, a:p.a, hp:p.hp, alive:p.alive, lv:p.lv || 0, bi:p.bi == null ? -1 : p.bi });
-  }, 60);
-  window.addEventListener('beforeunload', () => { if (roomCode) socket.emit('leave-room'); });
 })();
 </script>
 </body>
