@@ -1,23 +1,35 @@
-ONE MORTE - DEPLOIEMENT RENDER
+ZONE MORTE + SUPABASE
 
-Structure attendue :
-- server.js
-- package.json
-- public/index.html
+FICHIERS
+- server.js : serveur Express/Socket.IO et connexion Supabase côté serveur
+- public/index.html : jeu
+- public/grenades.js : script des grenades
+- online.js : fonctionnalités multijoueur
+- supabase-setup.sql : table à créer dans Supabase
+- .env.example : exemple sans clé secrète
 
-Render (Web Service) :
-- Runtime : Node
-- Build Command : npm install
-- Start Command : npm start
-- Instance port : laisser Render gérer PORT automatiquement
+1) SUPABASE
+- Ouvre ton projet Supabase.
+- Va dans SQL Editor > New query.
+- Copie le contenu de supabase-setup.sql, puis clique Run.
+- Dans Project Settings > API, récupère Project URL et la clé service_role/secret.
 
-Le client utilise automatiquement le même domaine que le serveur pour Socket.IO.
-Le endpoint de contrôle est /health.
+2) RENDER
+Dans ton service Render > Environment, ajoute :
+SUPABASE_URL = https://pqcfhikitdddsvjtoffe.supabase.co
+SUPABASE_SERVICE_ROLE_KEY = ta clé secrète service_role (ne la partage jamais).
+Puis sauvegarde et redéploie.
 
-Multijoueur :
-1. Ouvrir la même URL Render sur plusieurs appareils/navigateurs.
-2. Saisir le même code de salon (ex. BASTION-9), avec un pseudo différent.
-3. Cliquer sur « Rejoindre le salon ».
-4. Choisir Mobile ou PC pour démarrer.
+Ne place JAMAIS la clé service_role dans index.html, dans un fichier public, ou dans GitHub.
 
-Limite de cette première intégration : les positions et combats entre joueurs réels sont relayés par le serveur. Les bots, la zone, les objets et les bâtiments restent encore simulés côté navigateur ; ils ne constituent pas encore un état de partie entièrement autoritaire partagé. Cette version est une base multijoueur à tester, pas encore une version compétitive anti-triche.
+3) TEST
+Après déploiement, ouvre le jeu, crée un compte de test, puis recharge la page et reconnecte-toi.
+La progression sauvegardée via /api/user/data est conservée dans Supabase.
+Le cookie de session est en mémoire côté serveur : après un redémarrage/déploiement,
+les joueurs devront se reconnecter, mais leurs comptes et progression restent stockés.
+
+STOCKAGE LOCAL DE SECOURS
+Sans variables Supabase, le serveur utilise encore data/users.json en local.
+Sur Render, ce stockage local n'est pas garanti sans disque persistant.
+Les comptes existants dans un ancien users.json ne sont pas copiés automatiquement :
+il faut effectuer une migration séparée avant de supprimer l'ancien disque.
