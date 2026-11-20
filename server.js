@@ -216,7 +216,7 @@ app.post("/api/user/data", async (req, res) => {
       data = {
         weapons: (bodyData.weapons && typeof bodyData.weapons === "object" && !Array.isArray(bodyData.weapons)) ? bodyData.weapons : (data.weapons || { pistol: 1 }),
         unlocked: (bodyData.unlocked && typeof bodyData.unlocked === 'object' && !Array.isArray(bodyData.unlocked)) ? { pistol: true, ...bodyData.unlocked } : (data.unlocked || { pistol: true }),
-        loadout: ['pistol', 'rifle', 'shotgun'].includes(bodyData.loadout) ? bodyData.loadout : (data.loadout || 'pistol'),
+        loadout: ['pistol', 'pistol_mk2', 'pistol_heavy', 'rifle', 'rifle_burst', 'rifle_scar', 'shotgun', 'shotgun_auto', 'sniper', 'sniper_heavy'].includes(bodyData.loadout) ? bodyData.loadout : (data.loadout || 'pistol'),
         xp: Number.isFinite(Number(bodyData.xp)) ? Math.max(0, Number(bodyData.xp)) : (data.xp || 0),
         games: Number.isFinite(Number(bodyData.games)) ? Math.max(0, Number(bodyData.games)) : (data.games || 0),
         wins: Number.isFinite(Number(bodyData.wins)) ? Math.max(0, Number(bodyData.wins)) : (data.wins || 0),
