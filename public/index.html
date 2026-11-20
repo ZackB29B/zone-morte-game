@@ -174,6 +174,9 @@
   #auser { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
   #auser button { font-size: 14px; letter-spacing: .08em; padding: 4px 10px 2px; }
   .chips.two { grid-template-columns: 1fr 1fr; }
+  .chips.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #shopPanel { display: grid; gap: 10px; }
+  #shopPanel[hidden] { display: none; }
   .in { width: 100%; box-sizing: border-box; padding: 10px 12px; color: var(--bone); background: var(--ash); border: 1px solid var(--steel); font: 14px var(--mono); }
   .in:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
   .in[readonly] { opacity: .7; }
@@ -275,14 +278,16 @@
         <section>
           <h3>Armes récoltées</h3>
           <div class="armory" id="armory"></div>
-          <h3>Boutique · XP</h3>
-          <p class="note">Plusieurs modèles de pistolets, fusils d’assaut, pompes et snipers sont disponibles. Achète chaque modèle avec tes XP : il sera débloqué définitivement et tu pourras l’équiper au début de chaque partie. Molette ou bouton Arme pour parcourir toutes tes armes.</p>
-          <div class="armory" id="shop"></div>
         </section>
         <section>
           <h3>Créer une partie</h3>
           <div class="label">Connexion</div>
-          <div class="chips two" id="net"><button type="button" class="chip" data-n="0" aria-pressed="true">Hors ligne</button><button type="button" class="chip" data-n="1" aria-pressed="false">En ligne</button></div>
+          <div class="chips three" id="net"><button type="button" class="chip" data-n="0" aria-pressed="true">Hors ligne</button><button type="button" class="chip" data-n="1" aria-pressed="false">En ligne</button><button type="button" class="chip" data-n="2" aria-pressed="false">Boutique</button></div>
+          <div id="shopPanel" hidden>
+            <h3>Boutique · XP</h3>
+            <p class="note">Achète les différents pistolets, fusils d’assaut, pompes et snipers avec tes XP. Chaque arme achetée est débloquée définitivement. Tu peux ensuite l’équiper comme arme de départ.</p>
+            <div class="armory" id="shop"></div>
+          </div>
           <div id="offopts">
             <div class="label">Mode</div>
             <div class="opts" id="modes"></div>
@@ -1578,6 +1583,7 @@
   $('lback').addEventListener('click', () => { $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
 
   const GUN = { pistol: 'M6 6h46v9H36l-4 13H21l3-13H6z', rifle: 'M2 11h18l4-4h22v4h20v-3h10v8H56v3H34l-3 7h-8l2-7H2z', shotgun: 'M2 10h56v4H34l-2 4h-9l2-4H2zM58 8h20v8H58z', sniper: 'M1 12h70v3H42l-4 6h-8l3-6H1zM30 7h18v3H30z' };
+  let LOBBY_TAB = SAVE.online ? 'online' : 'offline';
   function renderLobby() {
     const s = SAVE;
     $('lstats').innerHTML = '<div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
@@ -1594,16 +1600,28 @@
     $('modes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-m="' + k + '" aria-pressed="' + (s.mode === k) + '"><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
     $('dnote').textContent = DIFF[s.diff].n + ' : ' + DIFF[s.diff].desc;
-    $('net').querySelectorAll('[data-n]').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.n === '1') === !!s.online)));
-    $('offopts').hidden = !!s.online; $('onl').hidden = !s.online; $('play').hidden = !!s.online;
-    if (s.online) { if (AUTH.user && !$('nname').value) $('nname').value = AUTH.user; connectNet(); renderNet(); }
+    $('net').querySelectorAll('[data-n]').forEach(b => {
+      const tab = b.dataset.n === '2' ? 'shop' : (b.dataset.n === '1' ? 'online' : 'offline');
+      b.setAttribute('aria-pressed', String(tab === LOBBY_TAB));
+    });
+    const inShop = LOBBY_TAB === 'shop', inOnline = LOBBY_TAB === 'online';
+    $('shopPanel').hidden = !inShop;
+    $('offopts').hidden = inShop || inOnline;
+    $('onl').hidden = inShop || !inOnline;
+    $('play').hidden = inShop || inOnline;
+    if (inOnline) { if (AUTH.user && !$('nname').value) $('nname').value = AUTH.user; connectNet(); renderNet(); }
   }
   $('shop').addEventListener('click', e => {
     const buy = e.target.closest('[data-buy]'), equip = e.target.closest('[data-equip]');
     if (buy) { const k = buy.dataset.buy, price = SHOP_PRICES[k]; if (!WP[k] || SAVE.unlocked[k] || !price || SAVE.xp < price) return; SAVE.xp -= price; SAVE.unlocked[k] = true; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' débloquée et équipée'); }
     else if (equip) { const k = equip.dataset.equip; if (!SAVE.unlocked[k]) return; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' équipée'); }
   });
-  $('net').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) { SAVE.online = b.dataset.n === '1'; persist(); renderLobby(); } });
+  $('net').addEventListener('click', e => {
+    const b = e.target.closest('[data-n]'); if (!b) return;
+    if (b.dataset.n === '2') LOBBY_TAB = 'shop';
+    else { SAVE.online = b.dataset.n === '1'; LOBBY_TAB = SAVE.online ? 'online' : 'offline'; persist(); }
+    renderLobby();
+  });
   $('modes').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) { SAVE.mode = b.dataset.m; persist(); renderLobby(); } });
   $('diffs').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if (b) { SAVE.diff = +b.dataset.d; persist(); renderLobby(); } });
 
