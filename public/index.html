@@ -214,7 +214,7 @@
     <div id="weapon">Pistolet</div>
     <div id="apanel"><div><span class="al">Balles</span><b id="bul">12</b></div><div><span class="al">Chargeurs</span><b id="mags">2</b></div><div><span class="al">Réserve</span><b id="res">24</b></div></div>
     <div id="reload"></div>
-    <div id="slots"><span class="slot" id="s1">1 Pistolet</span><span class="slot" id="s2">2 Fusil</span><span class="slot" id="s3">3 Pompe</span></div>
+    <div id="slots"><span class="slot" id="s1">1 Pistolet</span><span class="slot" id="s2">2 Fusil</span><span class="slot" id="s3">3 Pompe / Sniper</span></div>
   </div>
 
   <div class="hud" id="mmwrap"><canvas id="mm" width="150" height="150"></canvas></div>
@@ -276,7 +276,7 @@
           <h3>Armes récoltées</h3>
           <div class="armory" id="armory"></div>
           <h3>Boutique · XP</h3>
-          <p class="note">Les armes achetées sont débloquées définitivement et disponibles dès le début de chaque partie.</p>
+          <p class="note">Plusieurs modèles de pistolets, fusils d’assaut, pompes et snipers sont disponibles. Achète chaque modèle avec tes XP : il sera débloqué définitivement et tu pourras l’équiper au début de chaque partie. Molette ou bouton Arme pour parcourir toutes tes armes.</p>
           <div class="armory" id="shop"></div>
         </section>
         <section>
@@ -351,10 +351,22 @@
   let PH = PH0.slice();          // rayons successifs de la zone
   const ZDMG = [1.5, 3, 5, 8, 12, 20];             // dégâts par seconde hors zone
   const WP = {
-    pistol:  { n: 'Pistolet',      dmg: 24, rate: .30,  mag: 12, spd: 820, spread: .02, pel: 1, rng: 560, rel: 1.0, col: '#f0dc9a' },
-    rifle:   { n: 'Fusil d\'assaut', dmg: 13, rate: .095, mag: 30, spd: 900, spread: .05, pel: 1, rng: 700, rel: 1.5, col: '#ffd36b' },
-    shotgun: { n: 'Pompe',         dmg: 10, rate: .85,  mag: 6,  spd: 760, spread: .20, pel: 8, rng: 300, rel: 2.2, col: '#ff9f6b' }
+    pistol:       { n: 'Pistolet M9',       type: 'pistol',  dmg: 24, rate: .30, mag: 12, spd: 820, spread: .02, pel: 1, rng: 560, rel: 1.0, col: '#f0dc9a' },
+    pistol_mk2:   { n: 'Pistolet MK2',      type: 'pistol',  dmg: 31, rate: .36, mag: 15, spd: 850, spread: .018, pel: 1, rng: 590, rel: 1.1, col: '#f0dc9a' },
+    pistol_heavy: { n: 'Pistolet lourd',    type: 'pistol',  dmg: 48, rate: .55, mag: 8,  spd: 900, spread: .035, pel: 1, rng: 620, rel: 1.3, col: '#f0dc9a' },
+    rifle:        { n: 'Fusil d’assaut AK', type: 'rifle',   dmg: 13, rate: .095,mag: 30, spd: 900, spread: .05, pel: 1, rng: 700, rel: 1.5, col: '#ffd36b' },
+    rifle_burst:  { n: 'Fusil rafale',      type: 'rifle',   dmg: 19, rate: .16, mag: 24, spd: 940, spread: .035,pel: 1, rng: 760, rel: 1.6, col: '#ffd36b' },
+    rifle_scar:   { n: 'Fusil SCAR',        type: 'rifle',   dmg: 17, rate: .11, mag: 36, spd: 980, spread: .04, pel: 1, rng: 820, rel: 1.7, col: '#ffd36b' },
+    shotgun:     { n: 'Pompe M870',        type: 'shotgun', dmg: 10, rate: .85, mag: 6,  spd: 760, spread: .20, pel: 8, rng: 300, rel: 2.2, col: '#ff9f6b' },
+    shotgun_auto:{ n: 'Pompe automatique', type: 'shotgun', dmg: 7,  rate: .48, mag: 10, spd: 790, spread: .24, pel: 7, rng: 320, rel: 2.5, col: '#ff9f6b' },
+    sniper:      { n: 'Sniper M24',         type: 'sniper',  dmg: 95, rate: 1.25,mag: 5,  spd: 1500,spread: .006,pel: 1, rng: 1250,rel: 2.6, col: '#9bc8ff' },
+    sniper_heavy:{ n: 'Sniper lourd',      type: 'sniper',  dmg: 145,rate: 1.8, mag: 3,  spd: 1700,spread: .003,pel: 1, rng: 1500,rel: 3.1, col: '#9bc8ff' }
   };
+  const WEAPON_IDS = Object.keys(WP);
+  const WEAPON_TYPES = ['pistol', 'rifle', 'shotgun', 'sniper'];
+  const SHOP_PRICES = { pistol_mk2: 180, pistol_heavy: 300, rifle: 250, rifle_burst: 420, rifle_scar: 600, shotgun: 400, shotgun_auto: 560, sniper: 700, sniper_heavy: 950 };
+  const ownedWeaponIds = p => WEAPON_IDS.filter(k => p.ws[k]);
+  const firstOwnedOfType = (p, type) => ownedWeaponIds(p).find(k => WP[k].type === type);
   const NAMES = ['Valk','Dren','Orsk','Maren','Thane','Kael','Brix','Ysolde','Garr','Neth','Ruk','Sable','Voss','Iven','Torv','Hale','Zorn','Lyra','Cade','Mord','Pike','Rhen','Skol','Tarn'];
 
   const MODES = {
@@ -377,7 +389,7 @@
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
   if (!SAVE.unlocked || typeof SAVE.unlocked !== 'object') SAVE.unlocked = { pistol: true };
   SAVE.unlocked.pistol = true;
-  if (!['pistol', 'rifle', 'shotgun'].includes(SAVE.loadout) || !SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
+  if (!WP[SAVE.loadout] || !SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
   SAVE.xp = Math.max(0, Number(SAVE.xp) || 0);
   if (!MODES[SAVE.mode]) SAVE.mode = 'br';
   if (!(SAVE.diff >= 0 && SAVE.diff < DIFF.length)) SAVE.diff = 1;
@@ -403,9 +415,9 @@
         if (d && typeof d === 'object') {
           if (d.weapons && typeof d.weapons === 'object') SAVE.weapons = d.weapons;
           if (d.unlocked && typeof d.unlocked === 'object') SAVE.unlocked = { pistol: true, ...d.unlocked };
-          if (['pistol', 'rifle', 'shotgun'].includes(d.loadout)) SAVE.loadout = d.loadout;
+          if (WP[d.loadout]) SAVE.loadout = d.loadout;
           if (typeof d.xp === 'number') SAVE.xp = Math.max(0, d.xp);
-          if (!SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
+          if (!SAVE.unlocked[SAVE.loadout] || !WP[SAVE.loadout]) SAVE.loadout = 'pistol';
           if (typeof d.games === 'number') SAVE.games = d.games;
           if (typeof d.wins === 'number') SAVE.wins = d.wins;
           if (typeof d.kills === 'number') SAVE.kills = d.kills;
@@ -1125,9 +1137,9 @@
     if (e.code === 'KeyR') reload(P());
     if (e.code === 'KeyF') knife();
     if (e.code === 'KeyE') openNear();
-    if (e.code === 'Digit1') switchTo(P(), 'pistol');
-    if (e.code === 'Digit2') switchTo(P(), 'rifle');
-    if (e.code === 'Digit3') switchTo(P(), 'shotgun');
+    if (e.code === 'Digit1') { const k = firstOwnedOfType(P(), 'pistol'); if (k) switchTo(P(), k); }
+    if (e.code === 'Digit2') { const k = firstOwnedOfType(P(), 'rifle'); if (k) switchTo(P(), k); }
+    if (e.code === 'Digit3') { const k = firstOwnedOfType(P(), 'shotgun') || firstOwnedOfType(P(), 'sniper'); if (k) switchTo(P(), k); }
   });
   addEventListener('keyup', e => { const d = moveDir(e); if (d) MV[d] = false; KEYS[e.code] = false; });
   addEventListener('blur', () => { clearKeys(); M.down = false; });
@@ -1146,7 +1158,7 @@
     s.dx = dx / SR; s.dy = dy / SR; s.x = s.ox + dx; s.y = s.oy + dy;
   }
   function cycleW(dir) {
-    const own = ['pistol','rifle','shotgun'].filter(k => P().ws[k]), n = own.length, i = own.indexOf(P().cur);
+    const own = ownedWeaponIds(P()), n = own.length, i = own.indexOf(P().cur);
     if (n > 1) switchTo(P(), own[(i + dir + n) % n]);
   }
   cv.addEventListener('pointerdown', e => {
@@ -1188,7 +1200,7 @@
   cv.addEventListener('wheel', e => {
     e.preventDefault();
     if (G.state !== 'play' || G.over) return;
-    const own = ['pistol','rifle','shotgun'].filter(k => P().ws[k]);
+    const own = ownedWeaponIds(P());
     const i = own.indexOf(P().cur), n = own.length;
     if (n > 1) switchTo(P(), own[(i + (e.deltaY > 0 ? 1 : -1) + n) % n]);
   }, { passive: false });
@@ -1475,7 +1487,7 @@
     $('bul').textContent = s.mag; $('mags').textContent = Math.ceil(s.res / w.mag); $('res').textContent = s.res;
     $('apanel').classList.toggle('low', s.mag <= Math.floor(w.mag * .25));
     $('reload').textContent = p.rl > 0 ? 'Rechargement…' : (s.mag === 0 && s.res === 0 ? 'Plus de munitions' : '');
-    ['pistol','rifle','shotgun'].forEach((k, i) => { const el = $('s' + (i + 1)); el.classList.toggle('own', !!p.ws[k]); el.classList.toggle('on', p.cur === k); });
+    ['pistol','rifle','shotgun'].forEach((type, i) => { const k = firstOwnedOfType(p, type); const el = $('s' + (i + 1)); el.classList.toggle('own', !!k); el.classList.toggle('on', !!k && WP[p.cur].type === type); });
     $('alive').textContent = ents.filter(e => e.alive).length;
     $('kills').textContent = p.kills;
     $('tk').hidden = !(G.state === 'play' && !G.over && p.alive && stabTarget(p));
@@ -1565,23 +1577,19 @@
   $('play').addEventListener('click', start);
   $('lback').addEventListener('click', () => { $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
 
-  const GUN = {
-    pistol: 'M6 6h46v9H36l-4 13H21l3-13H6z',
-    rifle: 'M2 11h18l4-4h22v4h20v-3h10v8H56v3H34l-3 7h-8l2-7H2z',
-    shotgun: 'M2 10h56v4H34l-2 4h-9l2-4H2zM58 8h20v8H58z'
-  };
+  const GUN = { pistol: 'M6 6h46v9H36l-4 13H21l3-13H6z', rifle: 'M2 11h18l4-4h22v4h20v-3h10v8H56v3H34l-3 7h-8l2-7H2z', shotgun: 'M2 10h56v4H34l-2 4h-9l2-4H2zM58 8h20v8H58z', sniper: 'M1 12h70v3H42l-4 6h-8l3-6H1zM30 7h18v3H30z' };
   function renderLobby() {
     const s = SAVE;
     $('lstats').innerHTML = '<div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
-    $('armory').innerHTML = ['pistol', 'rifle', 'shotgun'].map(k => {
-      const w = WP[k], n = s.weapons[k] || 0, owned = k === 'pistol' || n > 0;
-      return '<div class="wcard' + (owned ? '' : ' locked') + '"><svg viewBox="0 0 80 30" aria-hidden="true"><path d="' + GUN[k] + '"/></svg><div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class="cnt">' + (k === 'pistol' ? 'Arme de départ' : n ? 'Récoltée ×' + n : 'À trouver') + '</div></div>';
-    }).join('');
-    $('shop').innerHTML = ['rifle', 'shotgun'].map(k => {
-      const price = k === 'rifle' ? 250 : 400, owned = !!s.unlocked[k], equipped = s.loadout === k;
-      return '<div class="wcard"><div></div><div><b>' + WP[k].n + '</b><small>' + (owned ? 'Débloquée définitivement' : 'Prix : ' + price + ' XP') + '</small></div><div class="cnt">' +
-        (owned ? '<button type="button" class="small" data-equip="' + k + '"' + (equipped ? ' disabled' : '') + '>' + (equipped ? 'Équipée' : 'Équiper') + '</button>' :
-        '<button type="button" class="small" data-buy="' + k + '"' + (s.xp < price ? ' disabled' : '') + '>Acheter</button>') + '</div></div>';
+    $('armory').innerHTML = WEAPON_IDS.filter(k => s.weapons[k] || s.unlocked[k]).map(k => {
+      const w = WP[k], n = s.weapons[k] || 0;
+      return '<div class=\"wcard\"><svg viewBox=\"0 0 80 30\" aria-hidden=\"true\"><path d=\"' + GUN[w.type] + '\"/></svg><div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class=\"cnt\">' + (s.unlocked[k] ? 'Débloquée' : 'Récoltée ×' + n) + '</div></div>';
+    }).join('') || '<p class=\"note\">Aucune arme récoltée pour le moment.</p>';
+    $('shop').innerHTML = WEAPON_IDS.filter(k => k !== 'pistol').map(k => {
+      const price = SHOP_PRICES[k], owned = !!s.unlocked[k], equipped = s.loadout === k;
+      return '<div class=\"wcard\"><svg viewBox=\"0 0 80 30\" aria-hidden=\"true\"><path d=\"' + GUN[WP[k].type] + '\"/></svg><div><b>' + WP[k].n + '</b><small>' + (owned ? 'Débloquée définitivement' : 'Prix : ' + price + ' XP') + '</small><small>Dégâts ' + WP[k].dmg + ' · Chargeur ' + WP[k].mag + ' · Portée ' + WP[k].rng + '</small></div><div class=\"cnt\">' +
+        (owned ? '<button type=\"button\" class=\"small\" data-equip=\"' + k + '\"' + (equipped ? ' disabled' : '') + '>' + (equipped ? 'Équipée' : 'Équiper') + '</button>' :
+        '<button type=\"button\" class=\"small\" data-buy=\"' + k + '\"' + (s.xp < price ? ' disabled' : '') + '>Acheter</button>') + '</div></div>';
     }).join('');
     $('modes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-m="' + k + '" aria-pressed="' + (s.mode === k) + '"><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
@@ -1592,7 +1600,7 @@
   }
   $('shop').addEventListener('click', e => {
     const buy = e.target.closest('[data-buy]'), equip = e.target.closest('[data-equip]');
-    if (buy) { const k = buy.dataset.buy, price = k === 'rifle' ? 250 : 400; if (SAVE.unlocked[k] || SAVE.xp < price) return; SAVE.xp -= price; SAVE.unlocked[k] = true; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' débloquée et équipée'); }
+    if (buy) { const k = buy.dataset.buy, price = SHOP_PRICES[k]; if (!WP[k] || SAVE.unlocked[k] || !price || SAVE.xp < price) return; SAVE.xp -= price; SAVE.unlocked[k] = true; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' débloquée et équipée'); }
     else if (equip) { const k = equip.dataset.equip; if (!SAVE.unlocked[k]) return; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' équipée'); }
   });
   $('net').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) { SAVE.online = b.dataset.n === '1'; persist(); renderLobby(); } });
