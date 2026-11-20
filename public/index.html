@@ -139,6 +139,8 @@
   .wcard b { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
   .wcard small { display: block; opacity: .7; font-size: 11px; }
   .wcard .cnt { text-align: right; color: var(--brass); font-size: 11px; }
+  .wcard .small { font-size: 16px; letter-spacing: .08em; padding: 5px 10px 3px; white-space: nowrap; }
+  .wcard button:disabled { opacity: .5; cursor: default; }
   .opts { display: grid; gap: 8px; }
   .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .opt, .chip { font-family: var(--mono); font-size: 12px; letter-spacing: .04em; text-transform: none; color: var(--bone); background: transparent; border: 1px solid var(--steel); padding: 9px 10px; text-align: left; justify-self: stretch; }
@@ -273,6 +275,9 @@
         <section>
           <h3>Armes récoltées</h3>
           <div class="armory" id="armory"></div>
+          <h3>Boutique · XP</h3>
+          <p class="note">Les armes achetées sont débloquées définitivement et disponibles dès le début de chaque partie.</p>
+          <div class="armory" id="shop"></div>
         </section>
         <section>
           <h3>Créer une partie</h3>
@@ -316,6 +321,7 @@
       <div class="tag" id="otag">Rapport de mission</div>
       <h1 id="otitle">Éliminé</h1>
       <div class="stats">
+        <div class="label">XP gagnée<b id="oxp">+0 XP</b></div>
         <div class="label">Classement<b id="oplace">#1</b></div>
         <div class="label">Éliminations<b id="okills">0</b></div>
         <div class="label">Durée<b id="otime">0:00</b></div>
@@ -366,9 +372,13 @@
     { n: 'Ghost',      desc: 'Presque aucune erreur, vision large, entendent tout.', err: .015, turn: 8.5, dmg: 1.2, spd: 182, view: 680, spread: .6, hp: 150, cd: .8, cone: 1.8, hear: 400, ar: 100, react: .65,  wk: [0, 3, 2] }
   ];
   const SAVE_KEY = 'zonemorte.v1';
-  const SAVE = { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false };
+  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false };
   try { const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (r && typeof r === 'object') Object.assign(SAVE, r); } catch (_) {}
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
+  if (!SAVE.unlocked || typeof SAVE.unlocked !== 'object') SAVE.unlocked = { pistol: true };
+  SAVE.unlocked.pistol = true;
+  if (!['pistol', 'rifle', 'shotgun'].includes(SAVE.loadout) || !SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
+  SAVE.xp = Math.max(0, Number(SAVE.xp) || 0);
   if (!MODES[SAVE.mode]) SAVE.mode = 'br';
   if (!(SAVE.diff >= 0 && SAVE.diff < DIFF.length)) SAVE.diff = 1;
   async function persist() {
@@ -379,7 +389,7 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weapons: SAVE.weapons, games: SAVE.games, wins: SAVE.wins, kills: SAVE.kills })
+          body: JSON.stringify({ weapons: SAVE.weapons, unlocked: SAVE.unlocked, loadout: SAVE.loadout, xp: SAVE.xp, games: SAVE.games, wins: SAVE.wins, kills: SAVE.kills })
         });
       } catch (_) {}
     }
@@ -392,6 +402,10 @@
         const d = await r.json();
         if (d && typeof d === 'object') {
           if (d.weapons && typeof d.weapons === 'object') SAVE.weapons = d.weapons;
+          if (d.unlocked && typeof d.unlocked === 'object') SAVE.unlocked = { pistol: true, ...d.unlocked };
+          if (['pistol', 'rifle', 'shotgun'].includes(d.loadout)) SAVE.loadout = d.loadout;
+          if (typeof d.xp === 'number') SAVE.xp = Math.max(0, d.xp);
+          if (!SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
           if (typeof d.games === 'number') SAVE.games = d.games;
           if (typeof d.wins === 'number') SAVE.wins = d.wins;
           if (typeof d.kills === 'number') SAVE.kills = d.kills;
@@ -666,7 +680,7 @@
     }
     if (ONLINE) {
       const mi = Math.max(0, NET.players.findIndex(q => q.id === NET.id));
-      ents.push(mkEnt(spots[mi].x, spots[mi].y, false, NET.name || 'Vous', 'pistol'));
+      ents.push(mkEnt(spots[mi].x, spots[mi].y, false, NET.name || 'Vous', SAVE.loadout || 'pistol'));
       NET.players.forEach((q, i) => {
         if (i === mi) return;
         const e = mkEnt(spots[i].x, spots[i].y, false, q.name, 'pistol');
@@ -674,7 +688,7 @@
         ents.push(e);
       });
     } else {
-    ents.push(mkEnt(spots[0].x, spots[0].y, false, 'Vous', 'pistol'));
+    ents.push(mkEnt(spots[0].x, spots[0].y, false, 'Vous', SAVE.loadout || 'pistol'));
     const pool = NAMES.slice().sort(() => Math.random() - .5);
     for (let i = 1; i < N; i++) {
       const dw = DIFF[SAVE.diff].wk, r = Math.random() * (dw[0] + dw[1] + dw[2]), wk = r < dw[0] ? 'pistol' : r < dw[0] + dw[1] ? 'rifle' : 'shotgun';
@@ -822,7 +836,10 @@
   }
   function endGame(win) {
     if (G.over) return; G.over = true; G.win = win; G.endT = win ? .8 : 1.2; if (win) G.place = 1;
-    SAVE.games++; if (win) SAVE.wins++; SAVE.kills += ents[0].kills; persist();
+    SAVE.games++; if (win) SAVE.wins++; SAVE.kills += ents[0].kills;
+    const place = Math.max(1, G.place || (win ? 1 : N));
+    const earned = (SAVE.mode === 'train' && !ONLINE) ? 0 : (place === 1 ? 100 : place <= 3 ? 70 : place <= 5 ? 50 : place <= 10 ? 30 : 10);
+    G.xpEarned = earned; SAVE.lastXp = earned; SAVE.xp += earned; persist();
   }
 
   let toastT;
@@ -1481,6 +1498,7 @@
     $('oplace').textContent = '#' + G.place;
     $('okills').textContent = ents[0].kills;
     $('otime').textContent = fmt(G.time);
+    $('oxp').textContent = '+' + (G.xpEarned || 0) + ' XP';
     $('over').hidden = false;
     $('again').focus();
   }
@@ -1554,10 +1572,16 @@
   };
   function renderLobby() {
     const s = SAVE;
-    $('lstats').innerHTML = '<div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
+    $('lstats').innerHTML = '<div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
     $('armory').innerHTML = ['pistol', 'rifle', 'shotgun'].map(k => {
       const w = WP[k], n = s.weapons[k] || 0, owned = k === 'pistol' || n > 0;
       return '<div class="wcard' + (owned ? '' : ' locked') + '"><svg viewBox="0 0 80 30" aria-hidden="true"><path d="' + GUN[k] + '"/></svg><div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class="cnt">' + (k === 'pistol' ? 'Arme de départ' : n ? 'Récoltée ×' + n : 'À trouver') + '</div></div>';
+    }).join('');
+    $('shop').innerHTML = ['rifle', 'shotgun'].map(k => {
+      const price = k === 'rifle' ? 250 : 400, owned = !!s.unlocked[k], equipped = s.loadout === k;
+      return '<div class="wcard"><div></div><div><b>' + WP[k].n + '</b><small>' + (owned ? 'Débloquée définitivement' : 'Prix : ' + price + ' XP') + '</small></div><div class="cnt">' +
+        (owned ? '<button type="button" class="small" data-equip="' + k + '"' + (equipped ? ' disabled' : '') + '>' + (equipped ? 'Équipée' : 'Équiper') + '</button>' :
+        '<button type="button" class="small" data-buy="' + k + '"' + (s.xp < price ? ' disabled' : '') + '>Acheter</button>') + '</div></div>';
     }).join('');
     $('modes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-m="' + k + '" aria-pressed="' + (s.mode === k) + '"><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
@@ -1566,6 +1590,11 @@
     $('offopts').hidden = !!s.online; $('onl').hidden = !s.online; $('play').hidden = !!s.online;
     if (s.online) { if (AUTH.user && !$('nname').value) $('nname').value = AUTH.user; connectNet(); renderNet(); }
   }
+  $('shop').addEventListener('click', e => {
+    const buy = e.target.closest('[data-buy]'), equip = e.target.closest('[data-equip]');
+    if (buy) { const k = buy.dataset.buy, price = k === 'rifle' ? 250 : 400; if (SAVE.unlocked[k] || SAVE.xp < price) return; SAVE.xp -= price; SAVE.unlocked[k] = true; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' débloquée et équipée'); }
+    else if (equip) { const k = equip.dataset.equip; if (!SAVE.unlocked[k]) return; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' équipée'); }
+  });
   $('net').addEventListener('click', e => { const b = e.target.closest('[data-n]'); if (b) { SAVE.online = b.dataset.n === '1'; persist(); renderLobby(); } });
   $('modes').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) { SAVE.mode = b.dataset.m; persist(); renderLobby(); } });
   $('diffs').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if (b) { SAVE.diff = +b.dataset.d; persist(); renderLobby(); } });
