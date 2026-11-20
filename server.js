@@ -147,7 +147,7 @@ app.post("/api/auth/register", async (req, res) => {
     const passwordHash = await scrypt(password, salt, 64);
     const user = {
       username, usernameKey, salt: salt.toString("hex"), passwordHash: passwordHash.toString("hex"),
-      data: { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0 }
+      data: { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', xp: 0, games: 0, wins: 0, kills: 0 }
     };
     if (!(await createUser(user))) return res.status(409).json({ error: "Ce pseudo est déjà utilisé." });
     issueSession(res, username);
@@ -197,7 +197,7 @@ app.get("/api/user/data", async (req, res) => {
     const username = currentUser(req);
     if (!username) return res.status(401).json({ error: "Non connecté." });
     const user = await findUser(username.toLowerCase());
-    res.json(user ? (user.data || { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0 }) : {});
+    res.json(user ? (user.data || { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', xp: 0, games: 0, wins: 0, kills: 0 }) : {});
   } catch (error) {
     console.error("Erreur lecture progression:", error);
     res.status(500).json({ error: "Impossible de charger la progression." });
@@ -211,14 +211,19 @@ app.post("/api/user/data", async (req, res) => {
     const user = await findUser(username.toLowerCase());
     if (!user) return res.status(404).json({ error: "Utilisateur introuvable." });
     const bodyData = req.body;
-    let data = user.data || { weapons: { pistol: 1 }, games: 0, wins: 0, kills: 0 };
+    let data = user.data || { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', xp: 0, games: 0, wins: 0, kills: 0 };
     if (bodyData && typeof bodyData === "object" && !Array.isArray(bodyData)) {
       data = {
         weapons: (bodyData.weapons && typeof bodyData.weapons === "object" && !Array.isArray(bodyData.weapons)) ? bodyData.weapons : (data.weapons || { pistol: 1 }),
+        unlocked: (bodyData.unlocked && typeof bodyData.unlocked === 'object' && !Array.isArray(bodyData.unlocked)) ? { pistol: true, ...bodyData.unlocked } : (data.unlocked || { pistol: true }),
+        loadout: ['pistol', 'rifle', 'shotgun'].includes(bodyData.loadout) ? bodyData.loadout : (data.loadout || 'pistol'),
+        xp: Number.isFinite(Number(bodyData.xp)) ? Math.max(0, Number(bodyData.xp)) : (data.xp || 0),
         games: Number.isFinite(Number(bodyData.games)) ? Math.max(0, Number(bodyData.games)) : (data.games || 0),
         wins: Number.isFinite(Number(bodyData.wins)) ? Math.max(0, Number(bodyData.wins)) : (data.wins || 0),
         kills: Number.isFinite(Number(bodyData.kills)) ? Math.max(0, Number(bodyData.kills)) : (data.kills || 0)
       };
+      if (!data.unlocked || !data.unlocked[data.loadout]) data.loadout = "pistol";
+      data.unlocked = { pistol: true, ...data.unlocked };
       await saveUserData(username.toLowerCase(), data);
     }
     res.json({ ok: true, data });
