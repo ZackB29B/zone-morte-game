@@ -1805,9 +1805,12 @@
     if (!AUTH.user) return;
     try {
       const data = await api('/api/social/requests');
-      $('socialIncoming').innerHTML = data.incoming.length ? data.incoming.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span><button class="small" data-social-accept="' + socialEsc(u) + '">Accepter</button> <button class="small sec" data-social-decline="' + socialEsc(u) + '">Refuser</button></span></div>').join('') : '<p class="note">Aucune demande.</p>';
-      $('socialOutgoing').innerHTML = data.outgoing.length ? data.outgoing.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span class="social-status">En attente</span></div>').join('') : '<p class="note">Aucune demande.</p>';
-      $('socialFriends').innerHTML = data.friends.length ? data.friends.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span class="social-status">Ami</span></div>').join('') : '<p class="note">Tu n’as pas encore d’amis.</p>';
+      const incoming = Array.isArray(data.incoming) ? data.incoming.filter(Boolean).map(String) : [];
+      const outgoing = Array.isArray(data.outgoing) ? data.outgoing.filter(Boolean).map(String) : [];
+      const friends = Array.isArray(data.friends) ? data.friends.filter(Boolean).map(String) : [];
+      $('socialIncoming').innerHTML = incoming.length ? incoming.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span><button class="small" data-social-accept="' + socialEsc(u) + '">Accepter</button> <button class="small sec" data-social-decline="' + socialEsc(u) + '">Refuser</button></span></div>').join('') : '<p class="note">Aucune demande.</p>';
+      $('socialOutgoing').innerHTML = outgoing.length ? outgoing.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span class="social-status">En attente</span></div>').join('') : '<p class="note">Aucune demande.</p>';
+      $('socialFriends').innerHTML = friends.length ? friends.map(u => '<div class="social-user"><b>' + socialEsc(u) + '</b><span class="social-status">Ami</span></div>').join('') : '<p class="note">Tu n’as pas encore d’amis.</p>';
     } catch (e) { $('socialMsg').textContent = e.message; }
   }
   async function searchSocial() {
