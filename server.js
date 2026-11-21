@@ -274,6 +274,40 @@ app.post("/api/social/respond", async (req, res) => {
   } catch (error) { console.error("Erreur réponse demande:", error); res.status(500).json({ error: "Impossible de traiter la demande." }); }
 });
 
+// --- Codes de récompense : gérés côté serveur, une utilisation par compte et par code ---
+const REWARD_CODES = ['ANIEL26', 'ZONE26', 'DROP2026'];
+const RANDOM_REWARD_POOL = ['pistol_mk2', 'pistol_heavy', 'pistol_silenced', 'smg_vector', 'smg_mp5', 'rifle', 'rifle_burst', 'rifle_scar', 'rifle_aug', 'shotgun', 'shotgun_auto', 'shotgun_slug', 'shotgun_tactical', 'dmr_scout', 'sniper', 'sniper_dragunov'];
+const BOSS_REWARD_CODE = 'BOSS26';
+const BOSS_REWARD_USER = 'zackb29b';
+app.post('/api/redeem-code', async (req, res) => {
+  try {
+    const username = currentUser(req);
+    if (!username) return res.status(401).json({ error: 'Connecte-toi pour utiliser un code.' });
+    const code = typeof req.body.code === 'string' ? req.body.code.trim().toUpperCase() : '';
+    const isBoss = code === BOSS_REWARD_CODE;
+    if (!REWARD_CODES.includes(code) && !isBoss) return res.status(400).json({ error: 'Code invalide.' });
+    if (isBoss && username.toLowerCase() !== BOSS_REWARD_USER) return res.status(403).json({ error: 'Ce code est réservé au compte ZackB29B.' });
+    const user = await findUser(username.toLowerCase());
+    if (!user) return res.status(404).json({ error: 'Compte introuvable.' });
+    const data = user.data || {};
+    const redeemed = Array.isArray(data.redeemedCodes) ? data.redeemedCodes : [];
+    if (redeemed.includes(code)) return res.status(409).json({ error: 'Tu as déjà utilisé ce code.' });
+    const weaponId = isBoss ? 'sniper_heavy' : RANDOM_REWARD_POOL[crypto.randomInt(RANDOM_REWARD_POOL.length)];
+    const weapons = { ...(data.weapons || { pistol: 1 }) };
+    const unlocked = { pistol: true, ...(data.unlocked || {}) };
+    const slots = Array.isArray(data.loadoutSlots) ? [...data.loadoutSlots] : ['pistol'];
+    weapons[weaponId] = (weapons[weaponId] || 0) + 1;
+    unlocked[weaponId] = true;
+    if (!slots.includes(weaponId) && slots.length < 6) slots.push(weaponId);
+    const updated = { ...data, weapons, unlocked, loadoutSlots: slots.slice(0, 6), loadout: data.loadout || 'pistol', redeemedCodes: [...redeemed, code] };
+    await saveUserData(username.toLowerCase(), updated);
+    res.json({ ok: true, code, weaponId, message: isBoss ? 'Récompense spéciale accordée !' : 'Code validé : arme débloquée !', data: updated });
+  } catch (error) {
+    console.error('Erreur code récompense:', error);
+    res.status(500).json({ error: 'Impossible de valider le code pour le moment.' });
+  }
+});
+
 // --- Synchronisation des données de jeu utilisateur ---
 app.get("/api/user/data", async (req, res) => {
   try {
@@ -305,7 +339,8 @@ app.post("/api/user/data", async (req, res) => {
         games: Number.isFinite(Number(bodyData.games)) ? Math.max(0, Number(bodyData.games)) : (data.games || 0),
         wins: Number.isFinite(Number(bodyData.wins)) ? Math.max(0, Number(bodyData.wins)) : (data.wins || 0),
         kills: Number.isFinite(Number(bodyData.kills)) ? Math.max(0, Number(bodyData.kills)) : (data.kills || 0),
-        social: (user.data && user.data.social && typeof user.data.social === "object") ? user.data.social : (data.social || { friends: [], incoming: [], outgoing: [] })
+        social: (user.data && user.data.social && typeof user.data.social === "object") ? user.data.social : (data.social || { friends: [], incoming: [], outgoing: [] }),
+        redeemedCodes: Array.isArray(user.data && user.data.redeemedCodes) ? user.data.redeemedCodes : (Array.isArray(data.redeemedCodes) ? data.redeemedCodes : [])
       };
       data.loadoutSlots = data.loadoutSlots.filter(k => k === 'pistol' || (data.unlocked && data.unlocked[k]));
       if (!data.loadoutSlots.includes('pistol')) data.loadoutSlots.unshift('pistol');
