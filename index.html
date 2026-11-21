@@ -1682,6 +1682,12 @@
   }
   async function enter(touch) {
     setMode(touch);
+    // On mobile, try to switch to fullscreen and lock landscape. Browsers may reject
+    // this unless it is triggered directly by a user tap, so failures are harmless.
+    if (touch && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) {
+      try { if (!document.fullscreenElement && $('stage').requestFullscreen) await $('stage').requestFullscreen(); } catch (_) {}
+      try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch (_) {}
+    }
     try { const me = await api('/api/auth/me'); AUTH.user = me.username; await loadUserData(); showLobby(); }
     catch (e) { AUTH.user = null; showAuth(e.status !== 401); }
   }
