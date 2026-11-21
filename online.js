@@ -8,8 +8,8 @@ const crypto = require("crypto");
 const MAXP = 16;           // joueurs max par partie
 const MINP = 2;            // joueurs min pour lancer
 const START_IN = 5;        // compte à rebours client (secondes)
-const WEAPONS = new Set(["pistol", "pistol_mk2", "pistol_heavy", "rifle", "rifle_burst", "rifle_scar", "shotgun", "shotgun_auto", "sniper", "sniper_heavy"]);
-const LOOT = new Set(["ammo", "med", "armor", "pistol", "rifle", "shotgun"]);
+const WEAPONS = new Set(["pistol", "pistol_mk2", "pistol_heavy", "pistol_silenced", "smg_vector", "smg_mp5", "rifle", "rifle_burst", "rifle_scar", "rifle_aug", "rifle_lmg", "shotgun", "shotgun_auto", "shotgun_slug", "shotgun_tactical", "sniper", "sniper_heavy", "dmr_scout", "sniper_dragunov"]);
+const LOOT = new Set(["ammo", "med", "armor", "grenade", "incend", "flash", "smoke", "pistol", "pistol_mk2", "pistol_heavy", "pistol_silenced", "smg_vector", "smg_mp5", "rifle", "rifle_burst", "rifle_scar", "rifle_aug", "rifle_lmg", "shotgun", "shotgun_auto", "shotgun_slug", "shotgun_tactical", "sniper", "sniper_heavy", "dmr_scout", "sniper_dragunov"]);
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const MODES = new Set(["br", "squad", "duel", "train"]);
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -216,6 +216,14 @@ module.exports = function attachOnline(io, opts = {}) {
       if (!allow() || !p || !ID_RE.test(String(p.id))) return;
       const m = cur(); if (!m) return;
       socket.to(m.room).emit("pk", { id: String(p.id) });
+    });
+    socket.on("wd", p => {
+      if (!allow() || !p || !WEAPONS.has(p.k) || !ID_RE.test(String(p.id))) return;
+      const m = cur(); if (!m) return;
+      const me = m.players.get(socket.id); if (!me || !me.alive) return;
+      const x = num(p.x, -1e4, 1e5), y = num(p.y, -1e4, 1e5);
+      if (x === null || y === null) return;
+      socket.to(m.room).emit("wd", { x, y, k: p.k, lv: p.lv ? 1 : 0, bi: int(p.bi, -1, 500) ?? -1, id: String(p.id) });
     });
     socket.on("ch", p => {
       if (!allow() || !p) return;
