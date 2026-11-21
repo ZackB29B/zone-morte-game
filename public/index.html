@@ -874,6 +874,20 @@
     if (!e.ws[k] || e.cur === k) return;
     e.cur = k; e.rl = 0; e.cd = .2;
   }
+  function dropWeapon(e) {
+    if (G.state !== 'play' || G.over || !e || !e.alive || e !== P()) return;
+    const k = e.cur;
+    const own = ownedWeaponIds(e);
+    if (!k || !e.ws[k]) return;
+    if (own.length <= 1) { toast('Garde au moins une arme'); return; }
+    const dropped = { x: e.x + Math.cos(e.a) * 28, y: e.y + Math.sin(e.a) * 28, k, lv: e.lv || 0, bi: e.bi, id: 'd_' + String(NET.id || 'local').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 18) + '_' + Date.now().toString(36) };
+    delete e.ws[k];
+    loot.push(dropped);
+    const next = ownedWeaponIds(e)[0];
+    if (next) switchTo(e, next);
+    if (ONLINE) netEmit('wd', dropped);
+    toast(WP[k].n + ' jetée · ramasse une autre arme');
+  }
 
   function netHit(e, d, k) { if (NET.sock && NET.ok && e.alive) NET.sock.emit('hit', { t: e.nid, d: Math.round(d * 10) / 10, k: k ? 1 : 0 }); }
   function hurt(e, d, by) {
@@ -1212,6 +1226,7 @@
     if (e.code === 'KeyR') reload(P());
     if (e.code === 'KeyF') knife();
     if (e.code === 'KeyE') openNear();
+    if (e.code === 'KeyC') { e.preventDefault(); dropWeapon(P()); }
     if (/^Digit[1-6]$/.test(e.code)) { const k = ownedWeaponIds(P())[Number(e.code.slice(-1)) - 1]; if (k) switchTo(P(), k); }
   });
   addEventListener('keyup', e => { const d = moveDir(e); if (d) MV[d] = false; KEYS[e.code] = false; });
@@ -1792,7 +1807,7 @@
     s.on('party', q => { NET.party = q; renderNet(); });
     s.on('party-mode', q => { if (NET.party) { NET.party.mode = q.mode; renderNet(); } });
     s.on('match-start', startOnline);
-    s.on('st', onSt); s.on('shot', onShot); s.on('door', onDoor); s.on('pk', onPk); s.on('ch', onCh);
+    s.on('st', onSt); s.on('shot', onShot); s.on('door', onDoor); s.on('pk', onPk); s.on('wd', onWeaponDrop); s.on('ch', onCh);
     s.on('dead', onDead); s.on('hit', onHit); s.on('gone', onGone); s.on('match-end', onEnd);
   }
   function renderNet() {
@@ -1878,6 +1893,11 @@
     if (m.t === 'o') o.open = true; else { NET.applying = true; breakDoor(o, null); NET.applying = false; }
   }
   function onPk(m) { if (!NET.inMatch || !m) return; const i = loot.findIndex(l => l.id === m.id); if (i >= 0) loot.splice(i, 1); }
+  function onWeaponDrop(m) {
+    if (!NET.inMatch || !m || !WP[m.k] || !Number.isFinite(m.x) || !Number.isFinite(m.y) || typeof m.id !== 'string') return;
+    if (loot.some(l => l.id === m.id)) return;
+    loot.push({ x: m.x, y: m.y, k: m.k, lv: m.lv ? 1 : 0, bi: Number.isInteger(m.bi) ? m.bi : -1, id: m.id });
+  }
   function onCh(m) { if (!NET.inMatch || !m) return; const c = chests[m.i]; if (c && !c.open) openChest(c, m.s, true); }
   function onDead(m) {
     if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return;
