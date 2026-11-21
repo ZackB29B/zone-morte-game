@@ -132,10 +132,13 @@
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
   .cols > section { min-width: 0; display: grid; gap: 10px; align-content: start; }
   .armory { display: grid; gap: 10px; }
-  .wcard { display: grid; grid-template-columns: 84px 1fr auto; gap: 14px; align-items: center; border: 1px solid var(--steel); padding: 10px 12px; background: rgba(26,31,34,.6); }
-  .wcard svg { width: 84px; height: 32px; fill: var(--bone); }
+  .wcard { display: grid; grid-template-columns: 100px 1fr auto; gap: 14px; align-items: center; border: 1px solid var(--steel); padding: 10px 12px; background: rgba(26,31,34,.6); }
+  .wcard svg { width: 96px; height: 42px; overflow: visible; }
+  .wcard .gunbody { fill: #9aa5a8; stroke: #20272b; stroke-width: 1.4; stroke-linejoin: round; }
+  .wcard .gundetail { fill: none; stroke: #20272b; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .wcard .gunaccent { fill: none; stroke: var(--brass); stroke-width: 2; stroke-linecap: round; }
   .wcard.locked { opacity: .45; }
-  .wcard.locked svg { fill: var(--steel); }
+  .wcard.locked svg .gunbody { fill: var(--steel); }
   .wcard b { font-family: var(--display); font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
   .wcard small { display: block; opacity: .7; font-size: 11px; }
   .wcard .cnt { text-align: right; color: var(--brass); font-size: 11px; }
@@ -150,7 +153,7 @@
   .opt span { opacity: .75; }
   .chip { text-align: center; }
   .note { opacity: .7; font-size: 12px; line-height: 1.5; }
-  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .wcard { grid-template-columns: 64px 1fr auto; gap: 10px; } .wcard svg { width: 64px; } }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } .wcard { grid-template-columns: 76px 1fr auto; gap: 10px; } .wcard svg { width: 76px; } }
   .bar.st > i { background: var(--brass); }
   .bar.st.exh > i { background: var(--rust); }
   #apanel { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--steel); background: rgba(12,14,15,.7); }
@@ -369,11 +372,20 @@
     shotgun:     { n: 'Pompe M870',        type: 'shotgun', dmg: 10, rate: .85, mag: 6,  spd: 760, spread: .20, pel: 8, rng: 300, rel: 2.2, col: '#ff9f6b' },
     shotgun_auto:{ n: 'Pompe automatique', type: 'shotgun', dmg: 7,  rate: .48, mag: 10, spd: 790, spread: .24, pel: 7, rng: 320, rel: 2.5, col: '#ff9f6b' },
     sniper:      { n: 'Sniper M24',         type: 'sniper',  dmg: 95, rate: 1.25,mag: 5,  spd: 1500,spread: .006,pel: 1, rng: 1250,rel: 2.6, col: '#9bc8ff' },
-    sniper_heavy:{ n: 'Sniper lourd',      type: 'sniper',  dmg: 145,rate: 1.8, mag: 3,  spd: 1700,spread: .003,pel: 1, rng: 1500,rel: 3.1, col: '#9bc8ff' }
+    sniper_heavy:{ n: 'Sniper lourd',      type: 'sniper',  dmg: 145,rate: 1.8, mag: 3,  spd: 1700,spread: .003,pel: 1, rng: 1500,rel: 3.1, col: '#9bc8ff' },
+    pistol_silenced:{ n: 'Pistolet silencieux', type: 'pistol', dmg: 27, rate: .25, mag: 17, spd: 840, spread: .012, pel: 1, rng: 640, rel: 1.0, col: '#f0dc9a' },
+    smg_vector:{ n: 'Mitraillette Vector', type: 'rifle', dmg: 9, rate: .055, mag: 35, spd: 870, spread: .075, pel: 1, rng: 460, rel: 1.35, col: '#ffd36b' },
+    smg_mp5:{ n: 'Mitraillette MP5', type: 'rifle', dmg: 12, rate: .075, mag: 30, spd: 900, spread: .045, pel: 1, rng: 540, rel: 1.3, col: '#ffd36b' },
+    rifle_aug:{ n: 'Fusil AUG', type: 'rifle', dmg: 18, rate: .105, mag: 30, spd: 1020, spread: .026, pel: 1, rng: 860, rel: 1.55, col: '#ffd36b' },
+    rifle_lmg:{ n: 'Mitrailleuse M249', type: 'rifle', dmg: 11, rate: .065, mag: 60, spd: 930, spread: .085, pel: 1, rng: 760, rel: 2.4, col: '#ffd36b' },
+    shotgun_slug:{ n: 'Fusil à pompe slug', type: 'shotgun', dmg: 62, rate: .95, mag: 5, spd: 1100, spread: .018, pel: 1, rng: 520, rel: 2.1, col: '#ff9f6b' },
+    shotgun_tactical:{ n: 'Pompe tactique', type: 'shotgun', dmg: 8, rate: .62, mag: 8, spd: 800, spread: .19, pel: 9, rng: 340, rel: 2.0, col: '#ff9f6b' },
+    dmr_scout:{ n: 'Fusil de précision Scout', type: 'sniper', dmg: 68, rate: .72, mag: 10, spd: 1350, spread: .009, pel: 1, rng: 1080, rel: 1.9, col: '#9bc8ff' },
+    sniper_dragunov:{ n: 'Sniper Dragunov', type: 'sniper', dmg: 82, rate: .82, mag: 10, spd: 1450, spread: .008, pel: 1, rng: 1180, rel: 2.2, col: '#9bc8ff' }
   };
   const WEAPON_IDS = Object.keys(WP);
   const WEAPON_TYPES = ['pistol', 'rifle', 'shotgun', 'sniper'];
-  const SHOP_PRICES = { pistol_mk2: 180, pistol_heavy: 300, rifle: 250, rifle_burst: 420, rifle_scar: 600, shotgun: 400, shotgun_auto: 560, sniper: 700, sniper_heavy: 950 };
+  const SHOP_PRICES = { pistol_mk2: 180, pistol_heavy: 300, rifle: 250, rifle_burst: 420, rifle_scar: 600, shotgun: 400, shotgun_auto: 560, sniper: 700, sniper_heavy: 950, pistol_silenced: 260, smg_vector: 520, smg_mp5: 480, rifle_aug: 680, rifle_lmg: 850, shotgun_slug: 620, shotgun_tactical: 720, dmr_scout: 780, sniper_dragunov: 900 };
   const ownedWeaponIds = p => WEAPON_IDS.filter(k => p.ws[k]);
   const firstOwnedOfType = (p, type) => ownedWeaponIds(p).find(k => WP[k].type === type);
   const NAMES = ['Valk','Dren','Orsk','Maren','Thane','Kael','Brix','Ysolde','Garr','Neth','Ruk','Sable','Voss','Iven','Torv','Hale','Zorn','Lyra','Cade','Mord','Pike','Rhen','Skol','Tarn'];
@@ -547,7 +559,7 @@
     const ci = chests.indexOf(c);
     const gen = () => {
       const first = Math.random() < .5 ? (Math.random() < .5 ? 'rifle' : 'shotgun') : 'armor';
-      const extra = ['ammo', 'med', 'rifle', 'shotgun', 'armor', 'ammo', 'grenade', 'incend', 'flash', 'smoke'];
+      const extra = ['ammo', 'med', 'armor', 'ammo', 'grenade', 'incend', 'flash', 'smoke', ...WEAPON_IDS.filter(k => k !== 'pistol')];
       const gren = ['grenade', 'incend', 'flash', 'smoke'];
       const items = [first, extra[Math.floor(Math.random() * extra.length)], Math.random() < .7 ? gren[Math.floor(Math.random() * gren.length)] : extra[Math.floor(Math.random() * extra.length)]];
       items.forEach((k, i) => {
@@ -728,7 +740,7 @@
     }
     }
     loot = [];
-    const kinds = ['ammo','ammo','ammo','ammo','med','med','armor','armor','rifle','rifle','shotgun','shotgun','pistol','incend'];
+    const kinds = ['ammo','ammo','ammo','med','med','armor','armor', ...WEAPON_IDS, 'rifle','shotgun','incend'];
     for (let i = 0, nl = Math.max(25, Math.round(150 * M0.zs * M0.zs)); i < nl; i++) { const pt = freePoint(); loot.push({ x: pt.x, y: pt.y, k: kinds[Math.floor(Math.random() * kinds.length)] }); }
     const bk = ['ammo', 'ammo', 'med', 'armor', 'rifle', 'rifle', 'shotgun', 'shotgun', 'pistol', 'grenade', 'incend', 'flash'];
     for (const b of blds) for (let i = 0; i < 3; i++) for (let t = 0; t < 12; t++) {
@@ -859,7 +871,19 @@
     if (G.over) return; G.over = true; G.win = win; G.endT = win ? .8 : 1.2; if (win) G.place = 1;
     SAVE.games++; if (win) SAVE.wins++; SAVE.kills += ents[0].kills;
     const place = Math.max(1, G.place || (win ? 1 : N));
-    const earned = (SAVE.mode === 'train' && !ONLINE) ? 0 : (place === 1 ? 100 : place <= 3 ? 70 : place <= 5 ? 50 : place <= 10 ? 30 : 10);
+    // Récompenses XP selon la difficulté choisie.
+    // Duel / entraînement : montant fixe par difficulté, versé uniquement en cas de victoire.
+    const duelWinXp = [10, 20, 35, 50, 75, 100];
+    // Battle royale et escouade rapide : classement conservé, puis ajusté selon la difficulté.
+    const rankBaseXp = place === 1 ? 100 : place <= 3 ? 70 : place <= 5 ? 50 : place <= 10 ? 30 : 10;
+    const rankDifficultyMultiplier = [0.10, 0.25, 0.45, 0.65, 0.82, 1.00];
+    const diffIndex = Math.max(0, Math.min(DIFF.length - 1, Number(SAVE.diff) || 0));
+    let earned = 0;
+    if (SAVE.mode === 'br' || SAVE.mode === 'squad') {
+      earned = Math.round(rankBaseXp * rankDifficultyMultiplier[diffIndex]);
+    } else if (win) {
+      earned = duelWinXp[diffIndex];
+    }
     G.xpEarned = earned; SAVE.lastXp = earned; SAVE.xp += earned; persist();
   }
 
@@ -888,7 +912,7 @@
   // ---- IA des bots : ils se comportent comme de vrais joueurs
   // Ils fuient la tempête avant qu'elle les touche, passent par les portes, pillent
   // coffres et objets, s'équipent, se soignent, enquêtent sur les bruits et ne campent pas.
-  const WRANK = { pistol: 1, shotgun: 2, rifle: 3 };
+  const WRANK = Object.fromEntries(WEAPON_IDS.map(k => [k, WP[k].type === 'pistol' ? 1 : WP[k].type === 'shotgun' ? 2 : WP[k].type === 'rifle' ? 3 : 4]));
   function bldAt(x, y) {
     for (let i = 0; i < blds.length; i++) { const b = blds[i]; if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) return i; }
     return -1;
@@ -1425,7 +1449,16 @@
       if (!e.alive || !entVis(e, p) || e.x < cx - 40 || e.x > cx + W + 40 || e.y < cy - 40 || e.y > cy + H + 40) continue;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.arc(e.x + 3, e.y + 4, e.r, 0, 6.283); ctx.fill();
       ctx.save(); ctx.translate(e.x, e.y); ctx.rotate(e.a);
-      ctx.fillStyle = '#20262a'; ctx.fillRect(6, -3.5, 18, 7);
+      const wt = WP[e.cur] ? WP[e.cur].type : 'pistol';
+      const metal = wt === 'sniper' ? '#9bb6c8' : wt === 'shotgun' ? '#a77b58' : wt === 'rifle' ? '#8e9a91' : '#b9b8ad';
+      ctx.fillStyle = '#111719'; ctx.fillRect(5, -3, wt === 'sniper' ? 31 : wt === 'shotgun' ? 27 : 23, 6);
+      ctx.fillStyle = metal; ctx.fillRect(5, -3.2, wt === 'sniper' ? 25 : wt === 'shotgun' ? 21 : 17, 5.4);
+      ctx.fillStyle = '#252b2d'; ctx.fillRect(10, -5, wt === 'pistol' ? 11 : 15, 2.2);
+      ctx.fillStyle = '#15191b'; ctx.fillRect(12, 2, 5, 7);
+      ctx.fillStyle = '#d4a537'; ctx.fillRect(wt === 'sniper' ? 20 : 15, -2.2, 2, 1.2);
+      if (wt === 'sniper') { ctx.fillStyle = '#26343b'; ctx.fillRect(15, -6, 9, 3); ctx.fillRect(18, -8, 3, 7); }
+      if (wt === 'shotgun') { ctx.fillStyle = '#60452f'; ctx.fillRect(5, -2, 7, 4); }
+      if (wt === 'rifle') { ctx.fillStyle = '#252b2d'; ctx.fillRect(18, 2, 4, 5); ctx.fillRect(24, -4, 5, 2); }
       ctx.fillStyle = e.bot ? '#a8443a' : e.rem ? '#9a5ad0' : '#6fc3d9'; ctx.beginPath(); ctx.arc(0, 0, e.r, 0, 6.283); ctx.fill();
       ctx.strokeStyle = '#0c0e0f'; ctx.lineWidth = 2.5; ctx.stroke();
       ctx.fillStyle = e.bot ? '#2a1210' : e.rem ? '#1d1030' : '#0f2a33'; ctx.beginPath(); ctx.arc(3, 0, 6, 0, 6.283); ctx.fill();
@@ -1586,18 +1619,34 @@
   $('play').addEventListener('click', start);
   $('lback').addEventListener('click', () => { $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
 
-  const GUN = { pistol: 'M6 6h46v9H36l-4 13H21l3-13H6z', rifle: 'M2 11h18l4-4h22v4h20v-3h10v8H56v3H34l-3 7h-8l2-7H2z', shotgun: 'M2 10h56v4H34l-2 4h-9l2-4H2zM58 8h20v8H58z', sniper: 'M1 12h70v3H42l-4 6h-8l3-6H1zM30 7h18v3H30z' };
+  const GUN = {
+    pistol: 'M8 9h37v8H31l-4 12H17l3-12H8z',
+    rifle: 'M2 12h18l5-5h24v5h17v-4h9v10H57v4H34l-4 8h-9l3-8H2z',
+    shotgun: 'M2 10h57v5H34l-3 7h-9l3-7H2zM58 8h19v10H58z',
+    sniper: 'M1 12h72v4H43l-5 7h-9l4-7H1zM28 6h23v5H28z'
+  };
+  const GUN_DETAIL = {
+    pistol:'M12 11h22M20 18h8M39 10v5M14 18l-2 8',
+    rifle:'M9 14h10M27 9h14M47 14h9M24 19v7M63 9v8',
+    shotgun:'M7 12h43M20 16v5M56 10v7',
+    sniper:'M5 14h61M31 8h16M35 18v5M52 10v4'
+  };
+  function weaponSvg(k) {
+    const t = WP[k].type;
+    const accent = t === 'sniper' ? '#9bc8ff' : t === 'shotgun' ? '#ff9f6b' : t === 'rifle' ? '#ffd36b' : '#f0dc9a';
+    return '<svg viewBox="0 0 80 34" aria-hidden="true"><path class="gunbody" d="' + GUN[t] + '"/><path class="gundetail" d="' + GUN_DETAIL[t] + '"/><path class="gunaccent" d="M4 5h' + (t === 'sniper' ? '22' : '12') + 'M' + (t === 'sniper' ? '28' : '42') + ' 25h8"/></svg>';
+  }
   let LOBBY_TAB = SAVE.online ? 'online' : 'offline';
   function renderLobby() {
     const s = SAVE;
     $('lstats').innerHTML = '<div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
     $('armory').innerHTML = WEAPON_IDS.filter(k => s.weapons[k] || s.unlocked[k]).map(k => {
       const w = WP[k], n = s.weapons[k] || 0;
-      return '<div class=\"wcard\"><svg viewBox=\"0 0 80 30\" aria-hidden=\"true\"><path d=\"' + GUN[w.type] + '\"/></svg><div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class=\"cnt\">' + (s.unlocked[k] ? 'Débloquée' : 'Récoltée ×' + n) + '</div></div>';
+      return '<div class=\"wcard\">' + weaponSvg(k) + '<div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class=\"cnt\">' + (s.unlocked[k] ? 'Débloquée' : 'Récoltée ×' + n) + '</div></div>';
     }).join('') || '<p class=\"note\">Aucune arme récoltée pour le moment.</p>';
     $('shop').innerHTML = WEAPON_IDS.filter(k => k !== 'pistol').map(k => {
       const price = SHOP_PRICES[k], owned = !!s.unlocked[k], equipped = s.loadout === k;
-      return '<div class=\"wcard\"><svg viewBox=\"0 0 80 30\" aria-hidden=\"true\"><path d=\"' + GUN[WP[k].type] + '\"/></svg><div><b>' + WP[k].n + '</b><small>' + (owned ? 'Débloquée définitivement' : 'Prix : ' + price + ' XP') + '</small><small>Dégâts ' + WP[k].dmg + ' · Chargeur ' + WP[k].mag + ' · Portée ' + WP[k].rng + '</small></div><div class=\"cnt\">' +
+      return '<div class=\"wcard\">' + weaponSvg(k) + '<div><b>' + WP[k].n + '</b><small>' + (owned ? 'Débloquée définitivement' : 'Prix : ' + price + ' XP') + '</small><small>Dégâts ' + WP[k].dmg + ' · Chargeur ' + WP[k].mag + ' · Portée ' + WP[k].rng + '</small></div><div class=\"cnt\">' +
         (owned ? '<button type=\"button\" class=\"small\" data-equip=\"' + k + '\"' + (equipped ? ' disabled' : '') + '>' + (equipped ? 'Équipée' : 'Équiper') + '</button>' :
         '<button type=\"button\" class=\"small\" data-buy=\"' + k + '\"' + (s.xp < price ? ' disabled' : '') + '>Acheter</button>') + '</div></div>';
     }).join('');
