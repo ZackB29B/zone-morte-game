@@ -169,6 +169,10 @@
   #auth label { display: grid; gap: 6px; color: var(--brass); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
   #auth label[hidden] { display: none; }
   #auth input { width: 100%; box-sizing: border-box; padding: 12px; color: var(--bone); background: var(--ash); border: 1px solid var(--steel); font: 14px var(--mono); }
+  #auth .pw { position: relative; display: block; margin-top: 4px; }
+  #auth .pw input { padding-right: 46px; margin-top: 0; }
+  #auth .eye { position: absolute; right: 0; top: 0; bottom: 0; width: 44px; display: flex; align-items: center; justify-content: center; background: none; border: 0; padding: 0; color: #8a949a; cursor: pointer; }
+  #auth .eye:hover, #auth .eye[aria-pressed="true"] { color: var(--brass); }
   #auth input:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
   #aerr { min-height: 18px; color: #ff8c78; line-height: 1.4; }
   #auser { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
@@ -256,8 +260,8 @@
         <button type="button" class="chip" id="treg" aria-pressed="false">S'inscrire</button>
       </div>
       <label>Pseudo<input id="apseudo" autocomplete="username" minlength="3" maxlength="20" required></label>
-      <label>Mot de passe<input id="apass" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
-      <label id="aclabel" hidden>Confirmer le mot de passe<input id="aconf" type="password" autocomplete="new-password" minlength="8" maxlength="128"></label>
+      <label>Mot de passe<span class="pw"><input id="apass" type="password" autocomplete="current-password" minlength="8" maxlength="128" required><button type="button" class="eye" data-for="apass" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
+      <label id="aclabel" hidden>Confirmer le mot de passe<span class="pw"><input id="aconf" type="password" autocomplete="new-password" minlength="8" maxlength="128"><button type="button" class="eye" data-for="aconf" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
       <p id="aerr" role="alert" aria-live="polite"></p>
       <div class="modes">
         <button type="submit" id="asubmit">Se connecter</button>
@@ -1793,6 +1797,21 @@
   init();
   window.__zm = { G, get ents() { return ents; }, get obs() { return obs; }, get blds() { return blds; }, get loot() { return loot; }, get chests() { return chests; }, start, update, grenadeHurt: hurt, grenadeToast: toast, grenadeGetParts: () => parts, grenadeHitObs: hitObs, get zone() { return zone; } };
   requestAnimationFrame(loop);
+})();
+</script>
+<script>
+(function(){
+  var OPEN='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M12 2.5v1.8M6 4.2l1 1.5M18 4.2l-1 1.5"/></svg>',SHUT='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg>';
+  document.querySelectorAll('#auth .eye').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.preventDefault(); e.stopPropagation();
+      var i=document.getElementById(b.dataset.for), show=i.type==='password';
+      i.type=show?'text':'password';
+      b.innerHTML=show?OPEN:SHUT; b.setAttribute('aria-pressed',show);
+      b.setAttribute('aria-label',show?'Masquer le mot de passe':'Afficher le mot de passe');
+      i.focus();
+    });
+  });
 })();
 </script>
 <script src="/grenades.js?v=5"></script>
