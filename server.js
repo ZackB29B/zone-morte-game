@@ -64,7 +64,17 @@ async function findUser(usernameKey) {
   if (!useSupabase) return users.get(usernameKey) || null;
   const rows = await supabaseRequest("zm_users", { query: `?select=username,username_key,salt,password_hash,data&username_key=eq.${encodeURIComponent(usernameKey)}&limit=1` });
   const row = rows && rows[0];
-  return row ? { username: row.username, usernameKey: row.username_key, salt: row.salt, passwordHash: row.password_hash, data: row.data || {} } : null;
+  return row ? { username: row.username, usernameKey: String(row.username_key || row.username || "").toLowerCase(), salt: row.salt, passwordHash: row.password_hash, data: row.data || {} } : null;
+}
+async function findUserByUsername(username) {
+  const key = String(username || "").trim().toLowerCase();
+  const exact = await findUser(key);
+  if (exact) return exact;
+  if (!useSupabase || !key) return null;
+  const params = new URLSearchParams({ select: "username,username_key,salt,password_hash,data", username: `ilike.${key}`, limit: "1" });
+  const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
+  const row = rows && rows[0];
+  return row ? { username: row.username, usernameKey: String(row.username_key || row.username || "").toLowerCase(), salt: row.salt, passwordHash: row.password_hash, data: row.data || {} } : null;
 }
 async function createUser(user) {
   if (!useSupabase) {
@@ -214,35 +224,39 @@ app.get("/api/social/search", async (req, res) => {
     const me = await socialUser(req);
     if (!me) return res.status(401).json({ error: "Connecte-toi pour utiliser le social." });
     const rawQ = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase() : "";
-    // Les pseudos sont limités à lettres, chiffres et underscore : neutralise les caractères
-    // qui pourraient modifier les filtres PostgREST et rend la recherche insensible à la casse.
     const q = rawQ.replace(/[^a-z0-9_]/g, "");
     if (q.length < 2) return res.json({ results: [] });
     if (q.length > 20) return res.status(400).json({ error: "Pseudo trop long." });
     const mine = socialFor(me);
-    const allUsers = useSupabase ? null : [...users.values()];
     let matches;
     if (useSupabase) {
-      // Cherche dans les deux colonnes afin de retrouver aussi les comptes anciens
-      // dont username_key est manquant ou mal normalisé. Le filtre porte sur TOUS
-      // les comptes Supabase, pas sur les sockets/joueurs actuellement en ligne.
-      const params = new URLSearchParams({
-        select: "username,username_key",
-        or: `(username.ilike.*${q}*,username_key.ilike.*${q}*)`,
-        limit: "30"
-      });
-      const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
-      matches = (Array.isArray(rows) ? rows : []).map(row => ({
+      // Deux recherches simples plutôt qu'un filtre OR PostgREST, pour plus de compatibilité.
+      const cols = "username,username_key";
+      const query1 = new URLSearchParams({ select: cols, username: `ilike.*${q}*`, limit: "30" });
+      const query2 = new URLSearchParams({ select: cols, username_key: `ilike.*${q}*`, limit: "30" });
+      const [rows1, rows2] = await Promise.all([
+        supabaseRequest("zm_users", { query: `?${query1.toString()}` }),
+        supabaseRequest("zm_users", { query: `?${query2.toString()}` })
+      ]);
+      const combined = [...(Array.isArray(rows1) ? rows1 : []), ...(Array.isArray(rows2) ? rows2 : [])];
+      const seen = new Set();
+      matches = combined.map(row => ({
         username: row.username,
         usernameKey: String(row.username_key || row.username || "").toLowerCase()
-      })).filter(u => u.username && u.usernameKey);
-    } else matches = allUsers.filter(u => String(u.usernameKey || u.username || "").toLowerCase().includes(q)).map(u => ({ username: u.username, usernameKey: String(u.usernameKey || u.username || "").toLowerCase() }));
+      })).filter(u => u.username && u.usernameKey && !seen.has(u.usernameKey) && seen.add(u.usernameKey));
+    } else {
+      matches = [...users.values()].map(u => ({ username: u.username, usernameKey: String(u.usernameKey || u.username || "").toLowerCase() }))
+        .filter(u => u.username && u.usernameKey.includes(q));
+    }
     const results = matches.filter(u => u.usernameKey !== me.usernameKey).slice(0, 15).map(u => ({
       username: u.username,
       status: mine.friends.includes(u.usernameKey) ? "friend" : mine.outgoing.includes(u.usernameKey) ? "pending" : mine.incoming.includes(u.usernameKey) ? "incoming" : "none"
     }));
     res.json({ results });
-  } catch (error) { console.error("Erreur recherche sociale:", error); res.status(500).json({ error: "Recherche impossible pour le moment." }); }
+  } catch (error) {
+    console.error("Erreur recherche sociale:", error);
+    res.status(500).json({ error: "Recherche impossible pour le moment." });
+  }
 });
 app.get("/api/social/requests", async (req, res) => {
   try {
@@ -264,7 +278,7 @@ app.post("/api/social/request", async (req, res) => {
     if (!me) return res.status(401).json({ error: "Connecte-toi pour utiliser le social." });
     const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
     if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) return res.status(400).json({ error: "Pseudo invalide." });
-    const target = await findUser(username.toLowerCase());
+    const target = await findUserByUsername(username);
     if (!target) return res.status(404).json({ error: "Aucun compte avec ce pseudo." });
     if (target.usernameKey === me.usernameKey) return res.status(400).json({ error: "Tu ne peux pas t'ajouter toi-même." });
     const mine = socialFor(me), theirs = socialFor(target);
@@ -281,7 +295,7 @@ app.post("/api/social/respond", async (req, res) => {
     const me = await socialUser(req);
     if (!me) return res.status(401).json({ error: "Connecte-toi pour utiliser le social." });
     const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
-    const target = await findUser(username.toLowerCase());
+    const target = await findUserByUsername(username);
     if (!target || target.usernameKey === me.usernameKey) return res.status(404).json({ error: "Demande introuvable." });
     const mine = socialFor(me), theirs = socialFor(target);
     if (!mine.incoming.includes(target.usernameKey)) return res.status(404).json({ error: "Cette demande n'est plus disponible." });
