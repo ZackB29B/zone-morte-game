@@ -308,7 +308,7 @@
           <div id="shopPanel" hidden>
             <h3>Boutique · XP</h3>
             <p class="note">Achète les différents pistolets, fusils d’assaut, pompes et snipers avec tes XP. Chaque arme achetée est débloquée définitivement. Tu peux ensuite l’équiper comme arme de départ.</p>
-            <div class="armory" id="shop"></div>
+            <div class="armory" id="shop"></div><div class="social-box" id="redeemBox"><h4>Code de récompense</h4><div class="social-search"><input class="in" id="rewardCode" maxlength="16" placeholder="ENTRER UN CODE" autocomplete="off"><button type="button" class="small" id="redeemBtn">Valider</button></div><div id="redeemMsg" class="note" role="status" aria-live="polite"></div><p class="note">Un code ne peut être utilisé qu'une seule fois par compte.</p></div>
           </div>
           <div id="socialPanel" hidden>
             <h3>Social · Amis</h3>
@@ -1775,6 +1775,23 @@
     else if (slot) { const k = slot.dataset.slot; if (!SAVE.unlocked[k]) return; if (SAVE.loadoutSlots.includes(k)) { if (k === 'pistol') return; SAVE.loadoutSlots = SAVE.loadoutSlots.filter(x => x !== k); if (SAVE.loadout === k) SAVE.loadout = SAVE.loadoutSlots[0] || 'pistol'; toast(WP[k].n + ' retirée'); } else { if (SAVE.loadoutSlots.length >= 6) return; SAVE.loadoutSlots.push(k); toast(WP[k].n + ' ajoutée aux emplacements'); } persist(); renderLobby(); }
     else if (equip) { const k = equip.dataset.equip; if (!SAVE.unlocked[k]) return; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' équipée'); }
   });
+  $('redeemBtn').addEventListener('click', async () => {
+    const code = $('rewardCode').value.trim();
+    const msg = $('redeemMsg');
+    if (!code) { msg.textContent = 'Entre un code.'; return; }
+    if (!AUTH.user) { msg.textContent = 'Connecte-toi pour utiliser un code.'; return; }
+    $('redeemBtn').disabled = true;
+    try {
+      const result = await api('/api/redeem-code', { code });
+      await loadUserData();
+      persist();
+      renderLobby();
+      $('rewardCode').value = '';
+      msg.textContent = result.message + ' (' + (WP[result.weaponId]?.n || result.weaponId) + ')';
+    } catch (err) { msg.textContent = err.message; }
+    finally { $('redeemBtn').disabled = false; }
+  });
+  $('rewardCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('redeemBtn').click(); } });
   $('net').addEventListener('click', e => {
     const b = e.target.closest('[data-n]'); if (!b) return;
     if (b.dataset.n === '2') LOBBY_TAB = 'shop';
