@@ -101,6 +101,9 @@
   .touchhint { display: block; }
   .modes { display: flex; gap: 12px; flex-wrap: wrap; }
   body.touch #tbtns { display: flex; left: auto; right: 12px; transform: none; gap: 6px; }
+  body.touch #grenadeHud { left: 8px !important; right: auto !important; transform: none !important; bottom: 16px !important; gap: 4px !important; }
+  body.touch #tbtns .tb { font-size: 13px; padding: 8px 7px; }
+  body.touch #tdrop { border-color: #8b6262; }
   
   body.touch .touchhint { display: block; }
   body.touch #stage { touch-action: none; }
@@ -247,7 +250,7 @@
   <div class="hud" id="ncount" hidden></div>
   <button id="tc" type="button" hidden>Ouvrir</button>
   <button id="tk" type="button" hidden>Poignarder</button>
-  <div id="tbtns"><button class="tb" id="tr" type="button">Recharger</button><button class="tb" id="tw" type="button">Arme</button></div>
+  <div id="tbtns"><button class="tb" id="tr" type="button">Recharger</button><button class="tb" id="tw" type="button">Arme</button><button class="tb" id="tdrop" type="button">Jeter arme</button></div>
 
   <div class="screen" id="menu">
     <div class="card">
@@ -1311,6 +1314,7 @@
   addEventListener('pointerup', e => { if (e.pointerType !== 'touch') M.down = false; });
   $('tr').addEventListener('click', () => { if (G.state === 'play' && !G.over) reload(P()); });
   $('tw').addEventListener('click', () => { if (G.state === 'play' && !G.over) cycleW(1); });
+  $('tdrop').addEventListener('click', () => { if (G.state === 'play' && !G.over) dropWeapon(P()); });
   $('tk').addEventListener('click', knife);
   $('tc').addEventListener('click', openNear);
   

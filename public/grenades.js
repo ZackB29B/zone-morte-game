@@ -30,7 +30,7 @@
     #grenadeHud button:hover { border-color:#d4a537; background:#1a1f22; }
     #grenadeLabel { min-width:128px; text-align:center; font-size:11px; color:#e7e1d3; background:rgba(12,14,15,.82); border:1px solid #3b454b; padding:7px 8px; }
     #grenadeLabel strong { color:#d4a537; }
-    @media(max-width:640px) { #grenadeHud { left:5px; right:auto; bottom:16px; transform:none; gap:4px; max-width:48vw; } #grenadeHud button { font-size:13px; padding:8px 7px; } #grenadeLabel { min-width:70px; font-size:9px; padding:7px 4px; } }
+    @media(max-width:640px) { #grenadeHud { bottom:16px; gap:4px; } #grenadeHud button { font-size:13px; padding:8px 7px; } #grenadeLabel { min-width:90px; font-size:9px; padding:7px 4px; } }
   `;
   document.head.appendChild(style);
 
