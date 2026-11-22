@@ -230,17 +230,15 @@ app.get("/api/social/search", async (req, res) => {
     const mine = socialFor(me);
     let matches;
     if (useSupabase) {
-      // Deux recherches simples plutôt qu'un filtre OR PostgREST, pour plus de compatibilité.
-      const cols = "username,username_key";
-      const query1 = new URLSearchParams({ select: cols, username: `ilike.*${q}*`, limit: "30" });
-      const query2 = new URLSearchParams({ select: cols, username_key: `ilike.*${q}*`, limit: "30" });
-      const [rows1, rows2] = await Promise.all([
-        supabaseRequest("zm_users", { query: `?${query1.toString()}` }),
-        supabaseRequest("zm_users", { query: `?${query2.toString()}` })
-      ]);
-      const combined = [...(Array.isArray(rows1) ? rows1 : []), ...(Array.isArray(rows2) ? rows2 : [])];
+      // Recherche directe dans Supabase par pseudo normalisé, insensible à la casse.
+      const params = new URLSearchParams({
+        select: "username,username_key",
+        username_key: `ilike.%${q}%`,
+        limit: "30"
+      });
+      const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
       const seen = new Set();
-      matches = combined.map(row => ({
+      matches = (Array.isArray(rows) ? rows : []).map(row => ({
         username: row.username,
         usernameKey: String(row.username_key || row.username || "").toLowerCase()
       })).filter(u => u.username && u.usernameKey && !seen.has(u.usernameKey) && seen.add(u.usernameKey));
