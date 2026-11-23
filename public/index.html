@@ -282,6 +282,8 @@
       </div>
       <label>Pseudo<input id="apseudo" autocomplete="username" minlength="3" maxlength="20" required></label>
       <label>Mot de passe<span class="pw"><input id="apass" type="password" autocomplete="current-password" minlength="8" maxlength="128" required><button type="button" class="eye" data-for="apass" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
+      <label id="aemailLabel" hidden>E-mail<input id="aemail" type="email" autocomplete="email" maxlength="254" placeholder="adresse@exemple.fr"></label>
+      <button type="button" class="sec small" id="forgotPassword" hidden>Mot de passe oublié ?</button>
       <label id="aclabel" hidden>Confirmer le mot de passe<span class="pw"><input id="aconf" type="password" autocomplete="new-password" minlength="8" maxlength="128"><button type="button" class="eye" data-for="aconf" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
       <p id="aerr" role="alert" aria-live="polite"></p>
       <div class="modes">
@@ -1673,6 +1675,8 @@
     $('atitle').textContent = reg ? 'Créer un compte' : 'Se connecter';
     $('tlogin').setAttribute('aria-pressed', String(!reg)); $('treg').setAttribute('aria-pressed', String(reg));
     $('aclabel').hidden = !reg; $('aconf').required = reg; if (!reg) $('aconf').value = '';
+    $('aemailLabel').hidden = !reg; $('aemail').required = reg; if (!reg) $('aemail').value = '';
+    $('forgotPassword').hidden = reg;
     $('apass').autocomplete = reg ? 'new-password' : 'current-password';
     $('asubmit').textContent = reg ? "S'inscrire" : 'Se connecter';
     $('aerr').textContent = '';
@@ -1697,17 +1701,25 @@
   }
   $('tlogin').addEventListener('click', () => authMode(false));
   $('treg').addEventListener('click', () => authMode(true));
+  $('forgotPassword').addEventListener('click', async () => {
+    const email = prompt('Entre l’adresse e-mail associée à ton compte :');
+    if (!email) return;
+    $('aerr').textContent = 'Envoi de la demande…';
+    try { await api('/api/auth/forgot-password', { email: email.trim() }); $('aerr').textContent = 'Si cette adresse est associée à un compte, un e-mail sera envoyé.'; }
+    catch (e) { $('aerr').textContent = e.message || 'La récupération par e-mail n’est pas encore activée.'; }
+  });
+
   $('aback').addEventListener('click', () => { $('auth').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
   $('askip').addEventListener('click', () => { AUTH.user = null; showLobby(); });
   $('aform').addEventListener('submit', async ev => {
     ev.preventDefault(); if (AUTH.busy) return;
-    const username = $('apseudo').value.trim(), password = $('apass').value, confirmPassword = $('aconf').value;
+    const username = $('apseudo').value.trim(), password = $('apass').value, confirmPassword = $('aconf').value, email = $('aemail').value.trim();
     $('aerr').textContent = '';
-    if (!username || !password || (AUTH.reg && !confirmPassword)) { $('aerr').textContent = 'Remplis tous les champs.'; return; }
+    if (!username || !password || (AUTH.reg && (!confirmPassword || !email))) { $('aerr').textContent = 'Remplis tous les champs.'; return; }
     if (AUTH.reg && password !== confirmPassword) { $('aerr').textContent = 'Les mots de passe ne correspondent pas.'; return; }
     AUTH.busy = true; $('asubmit').disabled = true;
     try {
-      const r = await api(AUTH.reg ? '/api/auth/register' : '/api/auth/login', AUTH.reg ? { username, password, confirmPassword } : { username, password });
+      const r = await api(AUTH.reg ? '/api/auth/register' : '/api/auth/login', AUTH.reg ? { username, password, confirmPassword, email } : { username, password });
       AUTH.user = r.username; $('apass').value = ''; $('aconf').value = ''; await loadUserData(); showLobby();
     } catch (e) { $('aerr').textContent = e.message === 'Failed to fetch' ? 'Serveur injoignable.' : e.message; }
     finally { AUTH.busy = false; $('asubmit').disabled = false; }
