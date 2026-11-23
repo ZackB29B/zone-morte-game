@@ -148,6 +148,8 @@ app.post("/api/auth/register", async (req, res) => {
     const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
     const password = typeof req.body.password === "string" ? req.body.password : "";
     const confirmPassword = typeof req.body.confirmPassword === "string" ? req.body.confirmPassword : "";
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return res.status(400).json({ error: "Entre une adresse e-mail valide." });
     if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) return res.status(400).json({ error: "Le pseudo doit contenir 3 à 20 caractères (lettres, chiffres ou _)." });
     if (password.length < 8 || Buffer.byteLength(password, "utf8") > 128) return res.status(400).json({ error: "Le mot de passe doit contenir entre 8 et 128 caractères." });
     if (password !== confirmPassword) return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
@@ -157,7 +159,7 @@ app.post("/api/auth/register", async (req, res) => {
     const passwordHash = await scrypt(password, salt, 64);
     const user = {
       username, usernameKey, salt: salt.toString("hex"), passwordHash: passwordHash.toString("hex"),
-      data: { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, games: 0, wins: 0, kills: 0 }
+      data: { email, weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, games: 0, wins: 0, kills: 0 }
     };
     if (!(await createUser(user))) return res.status(409).json({ error: "Ce pseudo est déjà utilisé." });
     issueSession(res, username);
@@ -186,6 +188,14 @@ app.post("/api/auth/login", async (req, res) => {
     console.error("Erreur connexion:", error);
     res.status(500).json({ error: "Impossible de se connecter pour le moment." });
   }
+});
+
+
+app.post("/api/auth/forgot-password", async (req, res) => {
+  // Le flux de récupération sera activé après la configuration d'un expéditeur SMTP vérifié.
+  const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Adresse e-mail invalide." });
+  return res.status(503).json({ error: "La récupération par e-mail n'est pas encore activée. La configuration SMTP est en attente." });
 });
 
 app.get("/api/auth/me", (req, res) => {
@@ -362,6 +372,7 @@ app.post("/api/user/data", async (req, res) => {
     let data = user.data || { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, games: 0, wins: 0, kills: 0 };
     if (bodyData && typeof bodyData === "object" && !Array.isArray(bodyData)) {
       data = {
+        ...(user.data || {}),
         weapons: (bodyData.weapons && typeof bodyData.weapons === "object" && !Array.isArray(bodyData.weapons)) ? bodyData.weapons : (data.weapons || { pistol: 1 }),
         unlocked: (bodyData.unlocked && typeof bodyData.unlocked === 'object' && !Array.isArray(bodyData.unlocked)) ? { pistol: true, ...bodyData.unlocked } : (data.unlocked || { pistol: true }),
         loadout: ['pistol', 'pistol_mk2', 'pistol_heavy', 'pistol_silenced', 'rifle', 'rifle_burst', 'rifle_scar', 'rifle_aug', 'rifle_lmg', 'smg_vector', 'smg_mp5', 'shotgun', 'shotgun_auto', 'shotgun_slug', 'shotgun_tactical', 'sniper', 'sniper_heavy', 'dmr_scout', 'sniper_dragunov'].includes(bodyData.loadout) ? bodyData.loadout : (data.loadout || 'pistol'),
