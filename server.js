@@ -105,6 +105,67 @@ async function saveUserData(usernameKey, data) {
   await supabaseRequest("zm_users", { method: "PATCH", query: `?username_key=eq.${encodeURIComponent(usernameKey)}`, prefer: "return=minimal", body: { data } });
   return true;
 }
+async function findUserByEmail(email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!useSupabase) {
+    for (const user of users.values()) {
+      if (String(user.data?.email || "").toLowerCase() === normalized) return user;
+    }
+    return null;
+  }
+  const params = new URLSearchParams({ select: "username,username_key,salt,password_hash,data", "data->>email": `eq.${normalized}`, limit: "1" });
+  const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
+  const row = rows && rows[0];
+  return row ? { username: row.username, usernameKey: String(row.username_key || row.username || "").toLowerCase(), salt: row.salt, passwordHash: row.password_hash, data: row.data || {} } : null;
+}
+async function updateUserPassword(user, salt, passwordHash, data) {
+  if (!useSupabase) {
+    const stored = users.get(user.usernameKey);
+    if (!stored) return false;
+    stored.salt = salt;
+    stored.passwordHash = passwordHash;
+    stored.data = data;
+    await persistUsers();
+    return true;
+  }
+  await supabaseRequest("zm_users", { method: "PATCH", query: `?username_key=eq.${encodeURIComponent(user.usernameKey)}`, prefer: "return=minimal", body: { salt, password_hash: passwordHash, data } });
+  return true;
+}
+function gmailConfigured() {
+  return Boolean(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN && process.env.GMAIL_USER);
+}
+async function sendGmailMessage(to, subject, textBody) {
+  if (!gmailConfigured()) throw new Error("Configuration Gmail API incomplète");
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GMAIL_CLIENT_ID,
+      client_secret: process.env.GMAIL_CLIENT_SECRET,
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      grant_type: "refresh_token"
+    })
+  });
+  const tokenData = await tokenResponse.json().catch(() => ({}));
+  if (!tokenResponse.ok || !tokenData.access_token) throw new Error(`Échec OAuth Gmail (${tokenResponse.status}): ${tokenData.error || "jeton absent"}`);
+  const from = process.env.GMAIL_USER;
+  const subjectEncoded = `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+  const rawMessage = [
+    `From: Zone Morte <${from}>`, `To: ${to}`, `Subject: ${subjectEncoded}`,
+    "MIME-Version: 1.0", "Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: 8bit", "",
+    textBody
+  ].join("\r\n");
+  const raw = Buffer.from(rawMessage, "utf8").toString("base64url");
+  const sendResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tokenData.access_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ raw })
+  });
+  if (!sendResponse.ok) {
+    const detail = await sendResponse.text();
+    throw new Error(`Échec API Gmail (${sendResponse.status}): ${detail.slice(0, 500)}`);
+  }
+}
 if (useSupabase) console.log("Stockage des comptes activé : Supabase.");
 else console.warn("Supabase non configuré : stockage local temporaire. Configure SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sur Render.");
 
@@ -192,10 +253,56 @@ app.post("/api/auth/login", async (req, res) => {
 
 
 app.post("/api/auth/forgot-password", async (req, res) => {
-  // Le flux de récupération sera activé après la configuration d'un expéditeur SMTP vérifié.
-  const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Adresse e-mail invalide." });
-  return res.status(503).json({ error: "La récupération par e-mail n'est pas encore activée. La configuration SMTP est en attente." });
+  try {
+    if (authRateLimited(req)) return res.status(429).json({ error: "Trop de demandes. Réessaie dans quelques minutes." });
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return res.status(400).json({ error: "Adresse e-mail invalide." });
+    // Réponse identique que l'adresse existe ou non pour ne pas révéler les comptes.
+    const user = await findUserByEmail(email);
+    if (user) {
+      const token = crypto.randomBytes(32).toString("base64url");
+      const expiresAt = Date.now() + 30 * 60 * 1000;
+      const data = { ...(user.data || {}), passwordResetHash: crypto.createHash("sha256").update(token).digest("hex"), passwordResetExpires: expiresAt };
+      await saveUserData(user.usernameKey, data);
+      const baseUrl = (process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`).replace(/\/$/, "");
+      const resetUrl = `${baseUrl}/?reset_user=${encodeURIComponent(user.username)}&reset_token=${encodeURIComponent(token)}`;
+      const message = `Bonjour ${user.username},\n\nTu as demandé à réinitialiser le mot de passe de ton compte Zone Morte.\n\nOuvre ce lien dans les 30 minutes :\n${resetUrl}\n\nSi tu n'es pas à l'origine de cette demande, ignore cet e-mail. Ton mot de passe ne changera pas.\n\nZone Morte`;
+      await sendGmailMessage(email, "Réinitialisation du mot de passe - Zone Morte", message);
+    }
+    return res.json({ ok: true, message: "Si cette adresse est associée à un compte, un e-mail sera envoyé." });
+  } catch (error) {
+    console.error("Erreur récupération mot de passe:", error);
+    return res.status(503).json({ error: "L'envoi de l'e-mail est temporairement indisponible. Réessaie plus tard." });
+  }
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    if (authRateLimited(req)) return res.status(429).json({ error: "Trop de tentatives. Réessaie dans quelques minutes." });
+    const username = typeof req.body.username === "string" ? req.body.username.trim() : "";
+    const token = typeof req.body.token === "string" ? req.body.token : "";
+    const password = typeof req.body.password === "string" ? req.body.password : "";
+    const confirmPassword = typeof req.body.confirmPassword === "string" ? req.body.confirmPassword : "";
+    if (!username || !/^[A-Za-z0-9_]{3,20}$/.test(username) || !/^[A-Za-z0-9_-]{40,60}$/.test(token)) return res.status(400).json({ error: "Lien de réinitialisation invalide." });
+    if (password.length < 8 || Buffer.byteLength(password, "utf8") > 128) return res.status(400).json({ error: "Le mot de passe doit contenir entre 8 et 128 caractères." });
+    if (password !== confirmPassword) return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
+    const user = await findUserByUsername(username);
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    if (!user || !user.data?.passwordResetHash || user.data.passwordResetHash !== tokenHash || Number(user.data.passwordResetExpires || 0) < Date.now()) {
+      return res.status(400).json({ error: "Ce lien est invalide ou a expiré. Demande un nouvel e-mail." });
+    }
+    const salt = crypto.randomBytes(16);
+    const passwordHash = await scrypt(password, salt, 64);
+    const data = { ...(user.data || {}) };
+    delete data.passwordResetHash;
+    delete data.passwordResetExpires;
+    await updateUserPassword(user, salt.toString("hex"), passwordHash.toString("hex"), data);
+    issueSession(res, user.username);
+    return res.json({ ok: true, username: user.username });
+  } catch (error) {
+    console.error("Erreur réinitialisation mot de passe:", error);
+    return res.status(500).json({ error: "Impossible de réinitialiser le mot de passe pour le moment." });
+  }
 });
 
 app.get("/api/auth/me", (req, res) => {
