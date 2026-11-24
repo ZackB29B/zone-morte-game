@@ -280,13 +280,20 @@
         <button type="button" class="chip" id="tlogin" aria-pressed="true">Se connecter</button>
         <button type="button" class="chip" id="treg" aria-pressed="false">S'inscrire</button>
       </div>
-      <label>Pseudo<input id="apseudo" autocomplete="username" minlength="3" maxlength="20" required></label>
-      <label>Mot de passe<span class="pw"><input id="apass" type="password" autocomplete="current-password" minlength="8" maxlength="128" required><button type="button" class="eye" data-for="apass" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
+      <label id="apseudoLabel">Pseudo<input id="apseudo" autocomplete="username" minlength="3" maxlength="20" required></label>
+      <label id="apassLabel">Mot de passe<span class="pw"><input id="apass" type="password" autocomplete="current-password" minlength="8" maxlength="128" required><button type="button" class="eye" data-for="apass" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
       <label id="aemailLabel" hidden>E-mail<input id="aemail" type="email" autocomplete="email" maxlength="254" placeholder="adresse@exemple.fr"></label>
       <button type="button" class="sec small" id="forgotPassword" hidden>Mot de passe oublié ?</button>
       <label id="aclabel" hidden>Confirmer le mot de passe<span class="pw"><input id="aconf" type="password" autocomplete="new-password" minlength="8" maxlength="128"><button type="button" class="eye" data-for="aconf" aria-label="Afficher le mot de passe" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9c2.5 4 6 6 10 6s7.5-2 10-6"/><path d="M5 13.5l-1.6 2.4M9.5 15.3l-.7 2.7M14.5 15.3l.7 2.7M19 13.5l1.6 2.4"/></svg></button></span></label>
+      <div id="resetPasswordPanel" hidden>
+        <p>Choisis un nouveau mot de passe pour ton compte.</p>
+        <label>Nouveau mot de passe<input id="resetPass" type="password" autocomplete="new-password" minlength="8" maxlength="128"></label>
+        <label>Confirmer le nouveau mot de passe<input id="resetPassConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128"></label>
+        <button type="button" id="resetPassSubmit">Enregistrer le nouveau mot de passe</button>
+        <button type="button" class="sec" id="resetPassCancel">Retour à la connexion</button>
+      </div>
       <p id="aerr" role="alert" aria-live="polite"></p>
-      <div class="modes">
+      <div class="modes" id="authModes">
         <button type="submit" id="asubmit">Se connecter</button>
         <button type="button" class="sec" id="aback">Retour</button>
         <button type="button" class="sec" id="askip" hidden>Jouer sans compte</button>
@@ -1708,6 +1715,43 @@
     try { await api('/api/auth/forgot-password', { email: email.trim() }); $('aerr').textContent = 'Si cette adresse est associée à un compte, un e-mail sera envoyé.'; }
     catch (e) { $('aerr').textContent = e.message || 'La récupération par e-mail n’est pas encore activée.'; }
   });
+  const resetParams = new URLSearchParams(window.location.search);
+  const resetUsername = resetParams.get('reset_user') || '';
+  const resetToken = resetParams.get('reset_token') || '';
+  function showResetPasswordPanel() {
+    showAuth(false);
+    $('atitle').textContent = 'Nouveau mot de passe';
+    $('tlogin').parentElement.hidden = true;
+    $('apseudoLabel').hidden = true; $('apassLabel').hidden = true;
+    $('aemailLabel').hidden = true; $('aclabel').hidden = true; $('forgotPassword').hidden = true;
+    $('authModes').hidden = true;
+    $('resetPasswordPanel').hidden = false;
+    $('aerr').textContent = '';
+    $('resetPass').focus();
+  }
+  $('resetPassSubmit').addEventListener('click', async () => {
+    const password = $('resetPass').value;
+    const confirmPassword = $('resetPassConfirm').value;
+    $('aerr').textContent = '';
+    if (password.length < 8) { $('aerr').textContent = 'Le mot de passe doit contenir au moins 8 caractères.'; return; }
+    if (password !== confirmPassword) { $('aerr').textContent = 'Les mots de passe ne correspondent pas.'; return; }
+    $('resetPassSubmit').disabled = true;
+    try {
+      const result = await api('/api/auth/reset-password', { username: resetUsername, token: resetToken, password, confirmPassword });
+      AUTH.user = result.username;
+      history.replaceState({}, document.title, window.location.pathname);
+      $('resetPass').value = ''; $('resetPassConfirm').value = '';
+      $('auth').hidden = true; await loadUserData(); showLobby();
+    } catch (e) { $('aerr').textContent = e.message || 'Impossible de changer le mot de passe.'; }
+    finally { $('resetPassSubmit').disabled = false; }
+  });
+  $('resetPassCancel').addEventListener('click', () => {
+    history.replaceState({}, document.title, window.location.pathname);
+    $('resetPasswordPanel').hidden = true; $('tlogin').parentElement.hidden = false;
+    $('apseudoLabel').hidden = false; $('apassLabel').hidden = false;
+    $('authModes').hidden = false; authMode(false); $('apseudo').value = resetUsername;
+  });
+  if (resetUsername && resetToken) showResetPasswordPanel();
 
   $('aback').addEventListener('click', () => { $('auth').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
   $('askip').addEventListener('click', () => { AUTH.user = null; showLobby(); });
