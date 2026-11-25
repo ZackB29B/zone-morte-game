@@ -988,14 +988,51 @@
     wallLine(x, y, w, false, !!op.n); wallLine(x, y + h - WT, w, false, !!op.s);
     wallLine(x, y, h, true, !!op.w); wallLine(x + w - WT, y, h, true, !!op.e);
     if (w > 260) wallLine(x + w / 2 - WT / 2, y + WT, h - 2 * WT, true, true);
+    // Les portes disposent d'un couloir libre : aucun élément intérieur ni escalier
+    // ne doit empiéter sur leur ouverture.
+    const doors = obs.slice(n0).filter(o => o.door);
+    const doorZones = doors.map(d => ({
+      x: d.x - 38, y: d.y - 38, w: d.w + 76, h: d.h + 76
+    }));
+    const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    if (doorZones.length) {
+      // Supprime uniquement les petits segments intérieurs qui boucheraient le passage.
+      for (let i = obs.length - 1; i >= n0; i--) {
+        const o = obs[i];
+        if (!o.door && o.bi === undefined && doorZones.some(z => overlaps(o, z))) obs.splice(i, 1);
+      }
+    }
     if (Math.random() < .35) {
       const bi = blds.length - 1;
-      blds[bi].st = { x: x + WT + 8, y: y + WT + 8, w: 44, h: 44 };
-      const U = (rx, ry, rw, rh) => { if (rw > 1 && rh > 1) obs.push({ x: rx, y: ry, w: rw, h: rh, lv: 1, bi }); };
+      const stairSize = 44;
+      const candidates = [
+        { x: x + w * .25 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
+        { x: x + w * .70 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
+        { x: x + w * .25 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize },
+        { x: x + w * .70 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize }
+      ].filter(st => st.x >= x + WT + 8 && st.y >= y + WT + 8 && st.x + st.w <= x + w - WT - 8 && st.y + st.h <= y + h - WT - 8 && !doorZones.some(z => overlaps(st, z)));
+      if (candidates.length) {
+        // Choisit l'emplacement le plus éloigné de toutes les portes.
+        candidates.sort((a, b) => {
+          const score = q => Math.min(Infinity, ...doors.map(d => Math.hypot(q.x + q.w / 2 - (d.x + d.w / 2), q.y + q.h / 2 - (d.y + d.h / 2))));
+          return score(b) - score(a);
+        });
+        blds[bi].st = candidates[0];
+      }
+      const U = (rx, ry, rw, rh) => {
+        if (rw <= 1 || rh <= 1) return;
+        const wall = { x: rx, y: ry, w: rw, h: rh };
+        if (!doorZones.some(z => overlaps(wall, z))) obs.push({ ...wall, lv: 1, bi });
+      };
       U(x, y, w, WT); U(x, y + h - WT, w, WT); U(x, y, WT, h); U(x + w - WT, y, WT, h);
       const G2 = 60;
-      if (w >= 230) { const px = x + w * .55, len = h - 2 * WT, g = rnd(10, len - 10 - G2); U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2); }
-      else { const py = y + h * .55, len = w - 2 * WT, g = rnd(60, len - 10 - G2); U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT); }
+      if (w >= 230) {
+        const px = x + w * .55, len = h - 2 * WT, g = rnd(10, len - 10 - G2);
+        U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2);
+      } else {
+        const py = y + h * .55, len = w - 2 * WT, g = rnd(60, len - 10 - G2);
+        U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT);
+      }
     }
     for (let i = n0; i < obs.length; i++) if (obs[i].bi === undefined) obs[i].bi = blds.length - 1;
   }
