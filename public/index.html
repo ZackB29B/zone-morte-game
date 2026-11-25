@@ -222,7 +222,7 @@
   #killcam[hidden] { display:none; }
   #killcam .kc-head { display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--brass); letter-spacing:.2em; font-weight:700; text-transform:uppercase; text-shadow:0 0 18px #d4a53755; font-size:clamp(10px,1.4vw,13px); }
   #killcam .kc-head span:first-child:before { content:' '; display:inline-block; width:7px; height:7px; margin:0 10px 1px 0; border-radius:50%; background:var(--rust); box-shadow:0 0 12px var(--rust); }
-  #killcam canvas { width:100%; height:100%; min-height:180px; border:1px solid #68747a; outline:1px solid #ffffff12; background:#101619; box-shadow:0 18px 65px #000b,0 0 35px #6fc3d911; }
+  #killcam canvas { display:block; width:auto; height:auto; max-width:100%; max-height:100%; min-width:0; min-height:0; justify-self:center; align-self:center; border:1px solid #68747a; outline:1px solid #ffffff12; background:#101619; box-shadow:0 18px 65px #000b,0 18px 65px #000b,0 0 35px #6fc3d911; }
   #killcam .kc-foot { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; color:var(--bone); font-size:clamp(10px,1.3vw,12px); letter-spacing:.1em; text-transform:uppercase; }
   #killcam .kc-foot span { padding:8px 12px; background:#101619bb; border-left:2px solid var(--brass); }
   #killcam .kc-foot span:last-child { color:var(--ice); border-left-color:var(--ice); }
@@ -674,6 +674,11 @@
     const frames = killScreenFrames.filter(f => now - f.t <= KC_HISTORY);
     if (frames.length < 2) return;
     killReplay = { frames, started: now, killer: killer.name || 'Joueur', victim: victim.name || 'Joueur' };
+    // La killcam reprend exactement le format de l'écran de jeu : même caméra du dessus,
+    // même cadrage et même proportions, sans étirer ni recadrer la carte.
+    const replayCanvas = $('kc-canvas');
+    replayCanvas.width = frames[0].image.width;
+    replayCanvas.height = frames[0].image.height;
     $('killcam').hidden = false;
     $('kc-killer').textContent = 'Éliminateur : ' + killReplay.killer;
     $('kc-victim').textContent = 'Éliminé : ' + killReplay.victim;
@@ -685,28 +690,31 @@
     const elapsed = Math.min(KC_DURATION, Math.max(0, now - killReplay.started));
     const firstT = frames[0].t, lastT = frames[frames.length - 1].t;
     const targetT = firstT + (lastT - firstT) * (elapsed / KC_DURATION);
-    let frame = frames[0];
+
+    // Trouve les deux captures autour du temps demandé et les mélange pour un ralenti
+    // plus régulier, tout en conservant les vrais pixels du gameplay.
+    let a = frames[0], b = frames[frames.length - 1];
     for (let i = 1; i < frames.length; i++) {
-      if (Math.abs(frames[i].t - targetT) < Math.abs(frame.t - targetT)) frame = frames[i];
-      else if (frames[i].t > targetT) break;
+      if (frames[i].t >= targetT) { a = frames[i - 1]; b = frames[i]; break; }
     }
-    c.fillStyle = '#050708'; c.fillRect(0, 0, w, h);
-    const img = frame.image;
-    const scale = Math.min(w / img.width, h / img.height);
-    const progress = elapsed / KC_DURATION;
-    // Léger travelling/zoom cinématique pendant le ralenti, sans modifier les images du jeu.
-    const zoom = 1.025 + Math.sin(progress * Math.PI) * .035;
-    const dw = img.width * scale * zoom, dh = img.height * scale * zoom;
-    c.save();
-    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-    c.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
-    // Vignette douce et bandes cinéma pour encadrer le replay.
-    const vignette = c.createRadialGradient(w/2,h/2,Math.min(w,h)*.18,w/2,h/2,Math.max(w,h)*.72);
-    vignette.addColorStop(0,'rgba(0,0,0,0)'); vignette.addColorStop(1,'rgba(0,0,0,.48)');
-    c.fillStyle = vignette; c.fillRect(0,0,w,h);
-    const bar = Math.max(12, Math.round(h*.045));
-    c.fillStyle = 'rgba(0,0,0,.78)'; c.fillRect(0,0,w,bar); c.fillRect(0,h-bar,w,bar);
-    c.restore();
+    const mix = b.t > a.t ? Math.max(0, Math.min(1, (targetT - a.t) / (b.t - a.t))) : 0;
+    c.clearRect(0, 0, w, h);
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = 'high';
+    c.globalAlpha = 1;
+    c.drawImage(a.image, 0, 0, w, h);
+    if (a !== b && mix > 0.01) {
+      c.globalAlpha = mix;
+      c.drawImage(b.image, 0, 0, w, h);
+      c.globalAlpha = 1;
+    }
+
+    // Finition discrète : légère vignette, sans zoom ni changement de perspective.
+    const vignette = c.createRadialGradient(w/2,h/2,Math.min(w,h)*.28,w/2,h/2,Math.max(w,h)*.76);
+    vignette.addColorStop(0,'rgba(0,0,0,0)');
+    vignette.addColorStop(1,'rgba(0,0,0,.28)');
+    c.fillStyle = vignette;
+    c.fillRect(0,0,w,h);
     $('kc-time').textContent = 'RALENTI · ' + String(Math.ceil((KC_DURATION - elapsed) / 1000)).padStart(2, '0') + 's';
   }
   function finishKillcam() {
