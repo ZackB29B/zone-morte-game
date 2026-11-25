@@ -238,6 +238,48 @@
   @keyframes kcEnter { from { opacity:0; transform:scale(1.015); } to { opacity:1; transform:scale(1); } }
   @media (max-width:640px) { #killcam { padding:10px; } #killcam .kc-head { letter-spacing:.08em; } #killcam .kc-foot span { padding:6px 8px; } }
 
+
+  /* Lobby premium : panneaux, identité, progression et navigation responsive */
+  #lobby { background: radial-gradient(ellipse at 50% 0%, rgba(212,165,55,.10), transparent 48%), linear-gradient(135deg, rgba(8,11,13,.96), rgba(18,23,26,.97)); }
+  #lobby .lobby { width: min(1120px, 100%); gap: 18px; padding: clamp(12px,2.4vw,26px); box-sizing: border-box; }
+  .lhead { padding: 0 0 16px; border-bottom: 1px solid rgba(212,165,55,.35); }
+  .lhead .tag, .eyebrow { color: var(--brass); letter-spacing: .2em; font-size: 10px; }
+  .lobby h2 { text-shadow: 0 8px 30px #000; letter-spacing: .035em; }
+  .lstats { gap: 14px; }
+  .lstats .label { min-width: 76px; font-size: 9px; color: #aab2b5; }
+  .lstats b { font-size: 27px; }
+  .lobby-nav { grid-template-columns: repeat(6,minmax(0,1fr)); padding: 6px; gap: 6px; border: 1px solid rgba(212,165,55,.24); background: rgba(4,7,8,.72); }
+  .lobby-nav .chip { text-align: center; min-height: 42px; font-size: 11px; border-color: transparent; background: rgba(255,255,255,.025); }
+  .lobby-nav .chip[aria-pressed="true"] { background: linear-gradient(135deg,rgba(212,165,55,.22),rgba(212,165,55,.06)); border-color: var(--brass); box-shadow: inset 0 -2px var(--brass); }
+  .cols { gap: 18px; }
+  .cols > section { padding: clamp(12px,2vw,20px); border: 1px solid rgba(126,145,153,.24); background: linear-gradient(145deg,rgba(27,34,38,.82),rgba(9,12,14,.82)); box-shadow: 0 14px 40px #0004; }
+  .lobby-panel { display: grid; gap: 14px; padding: clamp(14px,2.5vw,24px); border: 1px solid rgba(126,145,153,.28); background: linear-gradient(145deg,rgba(27,34,38,.9),rgba(9,12,14,.9)); }
+  .lobby-panel[hidden] { display: none; }
+  .profile-hero { display: flex; align-items: center; gap: 18px; padding: 18px; border: 1px solid rgba(212,165,55,.35); background: radial-gradient(circle at 10% 20%,rgba(212,165,55,.18),transparent 45%),#111719; }
+  .profile-emblem { display:grid; place-items:center; flex:0 0 78px; width:78px; height:78px; border:1px solid var(--brass); background:rgba(212,165,55,.10); color:var(--brass); font-size:40px; clip-path:polygon(50% 0,92% 22%,92% 78%,50% 100%,8% 78%,8% 22%); }
+  .profile-main { flex:1; min-width:0; }
+  .profile-main h3 { margin:2px 0 0; font-size:34px; }
+  .xp-track { height:8px; background:#30383c; border:1px solid #596267; overflow:hidden; }
+  .xp-track i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--brass),#f4df9a); box-shadow:0 0 12px var(--brass); }
+  .profile-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+  .profile-stat { padding:14px; min-width:0; border:1px solid rgba(126,145,153,.25); background:rgba(4,7,8,.58); }
+  .profile-stat span { display:block; color:#9ba6aa; font-size:9px; letter-spacing:.12em; }
+  .profile-stat b { display:block; margin-top:5px; color:var(--bone); font:600 30px var(--display); }
+  .setting-field { display:grid; gap:7px; color:var(--brass); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+  .setting-toggle { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:13px; border:1px solid var(--steel); background:rgba(4,7,8,.45); }
+  .setting-toggle span { display:grid; gap:4px; }.setting-toggle small { color:#aab2b5; font-size:11px; }
+  .setting-toggle input { width:20px; height:20px; accent-color:var(--brass); }
+  .emblem-picker { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; }
+  .emblem-picker .chip { font-size:22px; padding:7px; }
+  .accent-picker { display:flex; gap:12px; }
+  .accent-dot { width:34px; height:34px; border-radius:50%; border:2px solid #69747a; cursor:pointer; }
+  .accent-dot[aria-pressed="true"] { outline:2px solid var(--bone); outline-offset:3px; }
+  .accent-dot.gold { background:#d4a537; }.accent-dot.ice { background:#55b9d5; }.accent-dot.violet { background:#a35bd6; }.accent-dot.red { background:#c65b51; }
+  :root[data-accent="ice"] { --brass:#55b9d5; }:root[data-accent="violet"] { --brass:#b17be0; }:root[data-accent="red"] { --brass:#d36b60; }
+  body.compact-ui .lobby { gap:12px; } body.compact-ui .cols > section, body.compact-ui .lobby-panel { padding:12px; } body.compact-ui .wcard { padding:7px; }
+  @media(max-width:760px) { .lobby-nav { grid-template-columns:repeat(4,minmax(0,1fr)); } .lstats { width:100%; justify-content:space-between; } .profile-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media(max-width:390px) { .lobby-nav .chip { font-size:10px; padding:8px 4px; } .profile-emblem { flex-basis:58px; width:58px; height:58px; font-size:30px; } .profile-stat { padding:10px; } }
+
 </style>
 </head>
 <body>
@@ -338,7 +380,7 @@
         <section>
           <h3>Créer une partie</h3>
           <div class="label">Connexion</div>
-          <div class="chips" id="net" style="grid-template-columns:repeat(4,minmax(0,1fr))"><button type="button" class="chip" data-n="0" aria-pressed="true">Hors ligne</button><button type="button" class="chip" data-n="1" aria-pressed="false">En ligne</button><button type="button" class="chip" data-n="2" aria-pressed="false">Boutique</button><button type="button" class="chip" data-n="3" aria-pressed="false">Social</button></div>
+          <div class="chips lobby-nav" id="net"><button type="button" class="chip" data-n="0" aria-pressed="true">⚔ Jouer</button><button type="button" class="chip" data-n="1" aria-pressed="false">◎ En ligne</button><button type="button" class="chip" data-n="2" aria-pressed="false">▣ Arsenal</button><button type="button" class="chip" data-n="3" aria-pressed="false">♧ Social</button><button type="button" class="chip" data-n="4" aria-pressed="false">◈ Profil</button><button type="button" class="chip" data-n="5" aria-pressed="false">⚙ Réglages</button><button type="button" class="chip" data-n="6" aria-pressed="false">✦ Identité</button></div>
           <div id="shopPanel" hidden>
             <h3>Boutique · XP</h3>
             <p class="note">Achète les différents pistolets, fusils d’assaut, pompes et snipers avec tes XP. Chaque arme achetée est débloquée définitivement. Tu peux ensuite l’équiper comme arme de départ.</p>
@@ -366,6 +408,25 @@
               <div class="social-box"><h4>Mes amis</h4><div id="socialFriends" class="social-list"><p class="note">Tu n’as pas encore d’amis.</p></div></div>
             </div>
           </div>
+          <div id="profilePanel" class="lobby-panel" hidden>
+            <div class="profile-hero"><div class="profile-emblem" id="profileEmblem">◆</div><div class="profile-main"><div class="eyebrow">DOSSIER COMBATTANT</div><h3 id="profileName">Recrue</h3><p class="note" id="profileRank">Niveau 1 · Recrue</p><div class="xp-track"><i id="profileXpBar"></i></div><p class="note" id="profileXpText">0 / 500 XP vers le niveau suivant</p></div></div>
+            <div class="profile-metrics" id="profileMetrics"></div>
+            <div class="social-box"><h4>Historique de service</h4><p class="note" id="profileSummary">Ton dossier se remplira au fil des parties.</p></div>
+          </div>
+          <div id="customPanel" class="lobby-panel" hidden>
+            <h3>Identité & personnalisation</h3><p class="note">Personnalise ton identité affichée dans le lobby. Ces choix sont enregistrés sur cet appareil.</p>
+            <label class="setting-field">Nom d’appel<input class="in" id="callsignInput" maxlength="18" placeholder="Ton nom d’appel"></label>
+            <div class="label">Emblème</div><div class="emblem-picker" id="emblemPicker"><button type="button" class="chip" data-emblem="◆">◆</button><button type="button" class="chip" data-emblem="✦">✦</button><button type="button" class="chip" data-emblem="◈">◈</button><button type="button" class="chip" data-emblem="▲">▲</button><button type="button" class="chip" data-emblem="⬟">⬟</button><button type="button" class="chip" data-emblem="✚">✚</button></div>
+            <div class="label">Couleur d’interface</div><div class="accent-picker" id="accentPicker"><button type="button" class="accent-dot gold" data-accent="gold" aria-label="Or"></button><button type="button" class="accent-dot ice" data-accent="ice" aria-label="Bleu glacier"></button><button type="button" class="accent-dot violet" data-accent="violet" aria-label="Violet"></button><button type="button" class="accent-dot red" data-accent="red" aria-label="Rouge"></button></div>
+            <button type="button" id="saveIdentity">Enregistrer mon identité</button><p class="note" id="identityMsg" role="status"></p>
+          </div>
+          <div id="advancedPanel" class="lobby-panel" hidden>
+            <h3>Paramètres avancés</h3><p class="note">Ajuste l’affichage selon ton appareil. Les changements sont sauvegardés automatiquement.</p>
+            <label class="setting-field">Qualité graphique<select id="graphicsQualityAdvanced" class="music-select"><option value="auto">Automatique</option><option value="performance">Performances mobiles</option><option value="balanced">Équilibrée</option><option value="high">Élevée</option></select></label>
+            <label class="setting-toggle"><span><b>Interface compacte</b><small>Réduit légèrement l’encombrement de l’interface.</small></span><input type="checkbox" id="compactHudToggle"></label>
+            <div class="social-box"><h4>Conseil performance</h4><p class="note">Sur téléphone, privilégie le mode Performances mobiles si les animations manquent de fluidité. Le mode Automatique ajuste la résolution selon les performances détectées.</p></div>
+            <button type="button" class="sec" id="resetVisuals">Réinitialiser l’apparence</button>
+          </div>
           <div id="offopts">
             <div class="label">Mode</div>
             <div class="opts" id="modes"></div>
@@ -374,6 +435,9 @@
               <div class="chips" id="maps"></div>
               <p class="note">Choisis l’environnement de ta partie d’entraînement.</p>
             </div>
+            <div class="label">Qualité graphique</div>
+            <select id="graphicsQuality" class="music-select" aria-label="Qualité graphique"><option value="auto">Automatique (recommandé)</option><option value="balanced">Équilibrée</option><option value="performance">Performances mobiles</option><option value="high">Élevée</option></select>
+            <p class="note" id="graphicsNote">Le mode automatique ajuste la résolution pour garder une partie fluide.</p>
             <div class="label">Difficulté des bots</div>
             <div class="chips" id="diffs"></div>
             <p class="note" id="dnote"></p>
@@ -431,13 +495,23 @@
   const $ = id => document.getElementById(id);
   const cv = $('c'), ctx = cv.getContext('2d'), mm = $('mm'), mctx = mm.getContext('2d');
   let W = 800, H = 600, dpr = 1;
+  // Rendu adaptatif : limite la résolution sur mobile et baisse automatiquement
+  // la charge graphique si les images deviennent trop lentes.
+  let renderQuality = 'auto', slowFrames = 0, fastFrames = 0, qualityCheckAt = 0;
+  function targetDpr() {
+    const device = window.devicePixelRatio || 1;
+    const mobile = matchMedia('(max-width: 760px)').matches || navigator.hardwareConcurrency <= 4;
+    const cap = renderQuality === 'performance' ? 1 : renderQuality === 'balanced' ? 1.35 : renderQuality === 'high' ? 2 : (mobile ? 1.35 : 1.75);
+    return Math.max(1, Math.min(device, cap));
+  }
   function resize() {
     const r = $('stage').getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.max(1, r.width); H = Math.max(1, r.height);
+    dpr = targetDpr();
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   }
   addEventListener('resize', resize); resize();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) resize(); });
 
   const MAP = 5000;
   let N = 25, R0 = 2450;
@@ -487,7 +561,7 @@
     { n: 'Ghost',      desc: 'Presque aucune erreur, vision large, entendent tout.', err: .015, turn: 8.5, dmg: 1.2, spd: 182, view: 680, spread: .6, hp: 150, cd: .8, cone: 1.8, hear: 400, ar: 100, react: .65,  wk: [0, 3, 2] }
   ];
   const SAVE_KEY = 'zonemorte.v1';
-  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0 };
+  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0, graphics: 'auto', callsign: 'Recrue', emblem: '◆', accent: 'gold', compactHud: false };
   try { const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (r && typeof r === 'object') Object.assign(SAVE, r); } catch (_) {}
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
   if (!SAVE.unlocked || typeof SAVE.unlocked !== 'object') SAVE.unlocked = { pistol: true };
@@ -499,8 +573,13 @@
   if (!SAVE.loadoutSlots.includes(SAVE.loadout)) SAVE.loadout = SAVE.loadoutSlots[0] || 'pistol';
   SAVE.xp = Math.max(0, Number(SAVE.xp) || 0);
   if (!MODES[SAVE.mode]) SAVE.mode = 'br';
+  if (!['auto','balanced','performance','high'].includes(SAVE.graphics)) SAVE.graphics = 'auto';
+  if (!['gold','ice','violet','red'].includes(SAVE.accent)) SAVE.accent = 'gold';
+  if (!['◆','✦','◈','▲','⬟','✚'].includes(SAVE.emblem)) SAVE.emblem = '◆';
+  SAVE.callsign = String(SAVE.callsign || 'Recrue').slice(0, 18); SAVE.compactHud = !!SAVE.compactHud;
   SAVE.map = Number.isInteger(Number(SAVE.map)) ? Math.max(0, Math.min(5, Number(SAVE.map))) : 0;
   if (!(SAVE.diff >= 0 && SAVE.diff < DIFF.length)) SAVE.diff = 1;
+  renderQuality = SAVE.graphics || 'auto'; resize();
   async function persist() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (_) {}
     if (typeof AUTH !== 'undefined' && AUTH.user) {
@@ -2224,18 +2303,31 @@
     $('maps').innerHTML = THEMES.map((th, i) => '<button type="button" class="chip" data-map="' + i + '" aria-pressed="' + (s.map === i) + '">' + th.n + '</button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
     $('dnote').textContent = DIFF[s.diff].n + ' : ' + DIFF[s.diff].desc;
+    const qualitySelect = $('graphicsQuality');
+    if (qualitySelect) qualitySelect.value = s.graphics || 'auto';
+    const qualityNote = $('graphicsNote');
+    if (qualityNote) qualityNote.textContent = ({auto:'Ajuste automatiquement la résolution selon les performances.',balanced:'Résolution modérée pour un bon équilibre.',performance:'Réduit la résolution pour aider les téléphones moins puissants.',high:'Qualité maximale ; peut ralentir certains téléphones.'})[s.graphics || 'auto'];
     $('net').querySelectorAll('[data-n]').forEach(b => {
-      const tab = ({'0':'offline','1':'online','2':'shop','3':'social'})[b.dataset.n];
+      const tab = ({'0':'offline','1':'online','2':'shop','3':'social','4':'profile','5':'advanced','6':'custom'})[b.dataset.n];
       b.setAttribute('aria-pressed', String(tab === LOBBY_TAB));
     });
-    const inShop = LOBBY_TAB === 'shop', inOnline = LOBBY_TAB === 'online', inSocial = LOBBY_TAB === 'social';
+    const inShop = LOBBY_TAB === 'shop', inOnline = LOBBY_TAB === 'online', inSocial = LOBBY_TAB === 'social', inProfile = LOBBY_TAB === 'profile', inAdvanced = LOBBY_TAB === 'advanced', inCustom = LOBBY_TAB === 'custom';
     $('shopPanel').hidden = !inShop;
     $('socialPanel').hidden = !inSocial;
+    $('profilePanel').hidden = !inProfile; $('customPanel').hidden = !inCustom; $('advancedPanel').hidden = !inAdvanced;
+    $('profileEmblem').textContent = s.emblem; $('profileName').textContent = s.callsign || (AUTH.user || 'Recrue');
+    const level = Math.floor(Math.sqrt(Math.max(0, s.xp) / 500)) + 1, floorXp = (level - 1) ** 2 * 500, nextXp = level ** 2 * 500, progress = Math.max(0, Math.min(100, (s.xp - floorXp) / Math.max(1, nextXp - floorXp) * 100));
+    $('profileRank').textContent = 'NIVEAU ' + level + ' · ' + (level >= 20 ? 'Vétéran' : level >= 10 ? 'Éclaireur' : level >= 5 ? 'Opérateur' : 'Recrue'); $('profileXpBar').style.width = progress + '%'; $('profileXpText').textContent = s.xp + ' / ' + nextXp + ' XP · ' + Math.round(progress) + '% vers le niveau suivant';
+    const ratio = s.games ? Math.round(s.wins / s.games * 100) : 0, avg = s.games ? (s.kills / s.games).toFixed(1) : '0.0';
+    $('profileMetrics').innerHTML = [['PARTIES',s.games],['VICTOIRES',s.wins],['ÉLIMINATIONS',s.kills],['TAUX DE VICTOIRE',ratio + '%'],['ÉLIMINATIONS / PARTIE',avg],['XP TOTAL',s.xp]].map(([k,v]) => '<div class="profile-stat"><span>' + k + '</span><b>' + v + '</b></div>').join('');
+    $('profileSummary').textContent = s.games ? 'Tu as disputé ' + s.games + ' partie(s), remporté ' + s.wins + ' victoire(s) et réalisé ' + s.kills + ' élimination(s). Continue à progresser !' : 'Aucune mission enregistrée pour le moment. Lance une partie pour commencer ton historique.';
+    $('graphicsQualityAdvanced').value = s.graphics || 'auto'; $('compactHudToggle').checked = !!s.compactHud; document.documentElement.dataset.accent = s.accent || 'gold'; document.body.classList.toggle('compact-ui', !!s.compactHud);
+    $('callsignInput').value = s.callsign || 'Recrue'; $('emblemPicker').querySelectorAll('[data-emblem]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.emblem === s.emblem))); $('accentPicker').querySelectorAll('[data-accent]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.accent === s.accent))); 
     $('socialLogin').hidden = !!AUTH.user;
     $('socialContent').hidden = !AUTH.user;
-    $('offopts').hidden = inShop || inOnline || inSocial;
+    $('offopts').hidden = inShop || inOnline || inSocial || inProfile || inAdvanced || inCustom;
     $('onl').hidden = inShop || inSocial || !inOnline;
-    $('play').hidden = inShop || inOnline || inSocial;
+    $('play').hidden = inShop || inOnline || inSocial || inProfile || inAdvanced || inCustom;
     if (inSocial) renderSocialMusic();
     if (inSocial && AUTH.user) loadSocial();
     if (inOnline) { if (AUTH.user && !$('nname').value) $('nname').value = AUTH.user; connectNet(); renderNet(); }
@@ -2268,6 +2360,9 @@
     const b = e.target.closest('[data-n]'); if (!b) return;
     if (b.dataset.n === '2') LOBBY_TAB = 'shop';
     else if (b.dataset.n === '3') LOBBY_TAB = 'social';
+    else if (b.dataset.n === '4') LOBBY_TAB = 'profile';
+    else if (b.dataset.n === '5') LOBBY_TAB = 'advanced';
+    else if (b.dataset.n === '6') LOBBY_TAB = 'custom';
     else { SAVE.online = b.dataset.n === '1'; LOBBY_TAB = SAVE.online ? 'online' : 'offline'; persist(); }
     renderLobby();
   });
@@ -2309,6 +2404,18 @@
     try { await api('/api/social/respond', { username: (accept || decline).dataset[accept ? 'socialAccept' : 'socialDecline'], accept: !!accept }); await loadSocial(); }
     catch (err) { $('socialMsg').textContent = err.message; }
   });
+  $('graphicsQuality').addEventListener('change', e => {
+    const allowed = ['auto','balanced','performance','high'];
+    SAVE.graphics = allowed.includes(e.target.value) ? e.target.value : 'auto';
+    renderQuality = SAVE.graphics; resize(); persist(); renderLobby();
+    toast('Qualité graphique : ' + ({auto:'automatique',balanced:'équilibrée',performance:'performances',high:'élevée'})[renderQuality]);
+  });
+  $('graphicsQualityAdvanced').addEventListener('change', e => { $('graphicsQuality').value = e.target.value; $('graphicsQuality').dispatchEvent(new Event('change', { bubbles: true })); });
+  $('compactHudToggle').addEventListener('change', e => { SAVE.compactHud = !!e.target.checked; persist(); renderLobby(); });
+  $('emblemPicker').addEventListener('click', e => { const b = e.target.closest('[data-emblem]'); if (!b) return; SAVE.emblem = b.dataset.emblem; renderLobby(); });
+  $('accentPicker').addEventListener('click', e => { const b = e.target.closest('[data-accent]'); if (!b) return; SAVE.accent = b.dataset.accent; renderLobby(); });
+  $('saveIdentity').addEventListener('click', () => { SAVE.callsign = $('callsignInput').value.trim().slice(0,18) || 'Recrue'; persist(); $('identityMsg').textContent = 'Identité enregistrée.'; renderLobby(); });
+  $('resetVisuals').addEventListener('click', () => { SAVE.graphics = 'auto'; SAVE.accent = 'gold'; SAVE.emblem = '◆'; SAVE.compactHud = false; renderQuality = 'auto'; resize(); persist(); renderLobby(); toast('Apparence réinitialisée'); });
   $('modes').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) { SAVE.mode = b.dataset.m; persist(); renderLobby(); } });
   $('maps').addEventListener('click', e => {
     const b = e.target.closest('[data-map]');
@@ -2458,6 +2565,15 @@
       const rawDt = (now - last) / 1000;
       const dt = Math.min(0.05, Math.max(0.001, rawDt));
       last = now;
+      if (document.hidden) { requestAnimationFrame(loop); return; }
+      if (renderQuality === 'auto') {
+        if (rawDt > .025) { slowFrames++; fastFrames = 0; } else if (rawDt < .019) { fastFrames++; slowFrames = Math.max(0, slowFrames - 1); }
+        if (now - qualityCheckAt > 5000) {
+          qualityCheckAt = now;
+          if (slowFrames >= 90 && dpr > 1) { dpr = Math.max(1, dpr - .15); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); slowFrames = 0; fastFrames = 0; }
+          else if (fastFrames >= 220 && dpr < Math.min(window.devicePixelRatio || 1, matchMedia('(max-width: 760px)').matches ? 1.5 : 1.85)) { dpr = Math.min(Math.min(window.devicePixelRatio || 1, matchMedia('(max-width: 760px)').matches ? 1.5 : 1.85), dpr + .1); cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); slowFrames = 0; fastFrames = 0; }
+        }
+      }
       if (G.state === 'play') {
         try {
           if (ONLINE && NET.cd > 0) { 
