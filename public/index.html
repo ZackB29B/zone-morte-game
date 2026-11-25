@@ -1467,6 +1467,7 @@
       // perception : vue (cône), bruit des pas et des tirs, même sans ligne de vue
       let best = null, bd = D.view * D.view, heard = null, hdd = 1e9;
       for (const o of ents) {
+        if (b.blind > 0) break; // flashbang : aucune acquisition de cible pendant l'aveuglement
         if (o === b || !o.alive || (o.lv || 0) !== (b.lv || 0) || (b.lv && o.bi !== b.bi)) continue;
         const d = (o.x - b.x) ** 2 + (o.y - b.y) ** 2, dd = Math.sqrt(d);
         const hear = o.noisy ? D.hear : (o.shotT > 0 ? D.hear * 2.3 : 0);
@@ -1477,9 +1478,10 @@
         } else if (dd < hear && dd < hdd) { hdd = dd; heard = o; }
       }
       // Un bot qui a vu l'entrée peut tirer vers le dernier point connu dans la fumée.
-      if (!best && b.smokeKnown && b.smokeKnown.t > 0) {
+      if (!best && b.blind <= 0 && b.smokeKnown && b.smokeKnown.t > 0) {
         best = { x: b.smokeKnown.x, y: b.smokeKnown.y, alive: true, _smokeGuess: true };
       }
+      if (b.blind > 0) { best = null; heard = null; b.lastSeen = null; }
       if (best && !best._smokeGuess) b.lastSeen = { x: best.x, y: best.y, t: 4 };
       else if (heard && !b.lastSeen) b.lastSeen = { x: heard.x, y: heard.y, t: 5 };
       b.tgt = best; b.playerWasVisible = best === human && !((window.grenadeSmokeContains && window.grenadeSmokeContains(human)));
@@ -1607,7 +1609,14 @@
         if (!b.rush && !b.lootT && !b.chestT && b.gT > 1.2) b.gT = 1.2;
       }
     }
-    if (b.escT > 0) { b.escT -= dt; mx = Math.cos(b.escA); my = Math.sin(b.escA); b.steer = 0; }   // se dégage d'un coin
+    // Une incendiaire au sol force le bot à quitter la zone dangereuse.
+    if (b.grenadeEvade) {
+      mx = b.grenadeEvade.x;
+      my = b.grenadeEvade.y;
+      sp = Math.max(sp, D.spd * 1.22);
+      b.tgt = null;
+    }
+    if (b.escT > 0 && !b.grenadeEvade) { b.escT -= dt; mx = Math.cos(b.escA); my = Math.sin(b.escA); b.steer = 0; }   // se dégage d'un coin
     const m = Math.hypot(mx, my);
     if (m > .01) {
       if (m > 1) { mx /= m; my /= m; }
@@ -2505,6 +2514,6 @@
   });
 })();
 </script>
-<script src="/grenades.js?v=5"></script>
+<script src="/grenades.js?v=7"></script>
 </body>
 </html>
