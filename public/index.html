@@ -973,12 +973,12 @@
   }
 
   const WT = 14, DW = 50;
-  function wallLine(x0, y0, len, vert, withDoor) {
+  function wallLine(x0, y0, len, vert, withDoor, interior) {
     const R = (a, l) => vert ? { x: x0, y: y0 + a, w: WT, h: l } : { x: x0 + a, y: y0, w: l, h: WT };
-    if (!withDoor) { obs.push(R(0, len)); return; }
+    if (!withDoor) { obs.push({ ...R(0, len), interior: !!interior }); return; }
     const g = rnd(WT + 4, len - WT - 4 - DW);
-    obs.push(R(0, g)); obs.push(R(g + DW, len - g - DW));
-    const d = R(g, DW); d.door = true; d.hp = 100; d.dead = false; obs.push(d);
+    obs.push({ ...R(0, g), interior: !!interior }); obs.push({ ...R(g + DW, len - g - DW), interior: !!interior });
+    const d = R(g, DW); d.door = true; d.interior = !!interior; d.hp = 100; d.dead = false; obs.push(d);
   }
   function addBuilding(x, y, w, h) {
     const n0 = obs.length;
@@ -987,7 +987,7 @@
     for (let i = 0; i < nd; i++) op[sides[i]] = true;
     wallLine(x, y, w, false, !!op.n); wallLine(x, y + h - WT, w, false, !!op.s);
     wallLine(x, y, h, true, !!op.w); wallLine(x + w - WT, y, h, true, !!op.e);
-    if (w > 260) wallLine(x + w / 2 - WT / 2, y + WT, h - 2 * WT, true, true);
+    if (w > 260) wallLine(x + w / 2 - WT / 2, y + WT, h - 2 * WT, true, true, true);
     // Les portes disposent d'un couloir libre : aucun élément intérieur ni escalier
     // ne doit empiéter sur leur ouverture.
     const doors = obs.slice(n0).filter(o => o.door);
@@ -1035,6 +1035,60 @@
       }
     }
     for (let i = n0; i < obs.length; i++) if (obs[i].bi === undefined) obs[i].bi = blds.length - 1;
+    buildBuildingRooms(blds[blds.length - 1]);
+  }
+
+  // Découpe le toit en zones correspondant aux pièces réellement accessibles.
+  // Les ouvertures dans les cloisons restent des passages entre deux zones.
+  function buildBuildingRooms(building) {
+    const cell = 14;
+    const x0 = building.x + WT + 1, y0 = building.y + WT + 1;
+    const cols = Math.max(1, Math.floor((building.w - 2 * WT - 2) / cell));
+    const rows = Math.max(1, Math.floor((building.h - 2 * WT - 2) / cell));
+    const walls = obs.filter(o => o.bi === blds.length - 1 && (o.interior || o.lv === 1) && !o.dead && !o.open);
+    const grid = Array.from({ length: rows }, () => Array(cols).fill(-1));
+    for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
+      const px = x0 + gx * cell + cell / 2, py = y0 + gy * cell + cell / 2;
+      if (!walls.some(w => px >= w.x && px <= w.x + w.w && py >= w.y && py <= w.y + w.h)) grid[gy][gx] = -2;
+    }
+    const rooms = [];
+    for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
+      if (grid[gy][gx] !== -2) continue;
+      const id = rooms.length, cells = [], queue = [[gx, gy]];
+      grid[gy][gx] = id;
+      for (let qi = 0; qi < queue.length; qi++) {
+        const [cx, cy] = queue[qi]; cells.push([cx, cy]);
+        for (const [nx, ny] of [[cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]]) {
+          if (ny >= 0 && ny < rows && nx >= 0 && nx < cols && grid[ny][nx] === -2) {
+            grid[ny][nx] = id; queue.push([nx, ny]);
+          }
+        }
+      }
+      const path = typeof Path2D !== 'undefined' ? new Path2D() : null;
+      if (path) for (const [cx, cy] of cells) path.rect(x0 + cx * cell, y0 + cy * cell, cell + .5, cell + .5);
+      rooms.push({ cells, path, alpha: 1 });
+    }
+    building.roomGrid = grid;
+    building.roomX = x0; building.roomY = y0; building.roomCell = cell;
+    building.roomCols = cols; building.roomRows = rows; building.rooms = rooms;
+    building.activeRoom = -1;
+  }
+  function roomAtPosition(building, px, py) {
+    const gx = Math.floor((px - building.roomX) / building.roomCell);
+    const gy = Math.floor((py - building.roomY) / building.roomCell);
+    if (gy >= 0 && gy < building.roomRows && gx >= 0 && gx < building.roomCols) {
+      const id = building.roomGrid[gy][gx];
+      if (id >= 0) return id;
+    }
+    // Si le joueur se trouve juste sur une cloison, recherche la cellule libre la plus proche.
+    let best = -1, bestD = Infinity;
+    for (let id = 0; id < building.rooms.length; id++) for (const [cx, cy] of building.rooms[id].cells) {
+      const x = building.roomX + (cx + .5) * building.roomCell;
+      const y = building.roomY + (cy + .5) * building.roomCell;
+      const d = (x-px)*(x-px) + (y-py)*(y-py);
+      if (d < bestD) { bestD = d; best = id; }
+    }
+    return bestD < 42 * 42 ? best : -1;
   }
   function stabTarget(p) {
     let best = null, bd = 1e9;
@@ -1858,8 +1912,15 @@
     }
 
     for (const b of blds) {
-      const inside = p.x > b.x + 4 && p.x < b.x + b.w - 4 && p.y > b.y + 4 && p.y < b.y + b.h - 4;
-      b.roofA += ((inside ? 0 : 1) - b.roofA) * Math.min(1, dt * 7);
+      const inside = p.x > b.x + WT && p.x < b.x + b.w - WT && p.y > b.y + WT && p.y < b.y + b.h - WT;
+      b.activeRoom = inside ? roomAtPosition(b, p.x, p.y) : -1;
+      // Seule la pièce occupée s'ouvre ; les autres pièces du même bâtiment
+      // gardent leur toit opaque. Chaque zone possède sa propre transition.
+      for (let ri = 0; ri < (b.rooms || []).length; ri++) {
+        const target = inside && ri === b.activeRoom ? 0 : 1;
+        b.rooms[ri].alpha += (target - b.rooms[ri].alpha) * Math.min(1, dt * 7);
+      }
+      b.roofA = 1;
     }
 
     // joueur
@@ -2074,10 +2135,44 @@
       }
     }
     for (const q of parts) { ctx.globalAlpha = clamp(q.life * 3, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(q.x - 2, q.y - 2, 4, 4); }
+    // Chaque pièce possède son propre toit : seule celle du joueur devient transparente.
     for (const b of blds) {
-      if (b.roofA < .02 || b.x > cx + W || b.x + b.w < cx || b.y > cy + H || b.y + b.h < cy) continue;
-      ctx.globalAlpha = b.roofA; ctx.fillStyle = b.st ? '#34414a' : '#2b3338'; ctx.fillRect(b.x + WT, b.y + WT, b.w - 2 * WT, b.h - 2 * WT);
-      ctx.strokeStyle = '#3d4a52'; ctx.lineWidth = 2; ctx.strokeRect(b.x + WT + 6, b.y + WT + 6, b.w - 2 * WT - 12, b.h - 2 * WT - 12);
+      if (b.x > cx + W || b.x + b.w < cx || b.y > cy + H || b.y + b.h < cy) continue;
+      const rx = b.x + WT, ry = b.y + WT, rw = b.w - 2 * WT, rh = b.h - 2 * WT;
+      const rooms = b.rooms || [];
+      for (const room of rooms) {
+        if (room.alpha < .02) continue;
+        ctx.save();
+        ctx.globalAlpha = room.alpha;
+        ctx.fillStyle = b.st ? '#34414a' : '#252d32';
+        if (room.path) ctx.fill(room.path);
+        else {
+          ctx.beginPath();
+          for (const [gx, gy] of room.cells) ctx.rect(b.roomX + gx * b.roomCell, b.roomY + gy * b.roomCell, b.roomCell + .5, b.roomCell + .5);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+      // Finition du toit : contour du bâtiment et panneaux discrets.
+      ctx.save();
+      ctx.strokeStyle = '#111719'; ctx.lineWidth = 4; ctx.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
+      ctx.strokeStyle = '#46545c'; ctx.lineWidth = 2; ctx.strokeRect(rx + 6, ry + 6, rw - 12, rh - 12);
+      ctx.restore();
+    }
+    // Les toits sont dessinés au-dessus de la scène pour masquer l'intérieur.
+    // On redessine ensuite les murs et les portes par-dessus le toit : ils restent
+    // toujours visibles, même lorsque les pièces voisines sont couvertes.
+    for (const o of obs) {
+      if (o.dead || !objVis(o, p) || o.x > cx + W || o.x + o.w < cx || o.y > cy + H || o.y + o.h < cy) continue;
+      if (o.open) {
+        ctx.strokeStyle = '#b08a4a'; ctx.lineWidth = 5; ctx.beginPath();
+        if (o.w > o.h) { ctx.moveTo(o.x, o.y + o.h / 2); ctx.lineTo(o.x, o.y + o.h / 2 + o.w - 4); }
+        else { ctx.moveTo(o.x + o.w / 2, o.y); ctx.lineTo(o.x + o.w / 2 + o.h - 4, o.y); }
+        ctx.stroke(); continue;
+      }
+      ctx.fillStyle = o.door ? '#6b4f2a' : '#242a2e'; ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.fillStyle = o.door ? '#8a6a3b' : '#2d363b'; ctx.fillRect(o.x + 3, o.y + 3, o.w - 6, o.h - 6);
+      ctx.strokeStyle = o.door ? '#b08a4a' : '#46525a'; ctx.lineWidth = 2; ctx.strokeRect(o.x, o.y, o.w, o.h);
     }
     ctx.globalAlpha = 1;
 
