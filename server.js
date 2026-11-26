@@ -105,6 +105,16 @@ async function saveUserData(usernameKey, data) {
   await supabaseRequest("zm_users", { method: "PATCH", query: `?username_key=eq.${encodeURIComponent(usernameKey)}`, prefer: "return=minimal", body: { data } });
   return true;
 }
+
+// Profil spécial demandé pour le compte ZackB29B : grade Ghost et niveau 20 minimum.
+// Les statistiques, armes et données sociales existantes sont conservées.
+async function applyZackGhostProfile(user) {
+  if (!user || String(user.usernameKey || user.username || "").toLowerCase() !== "zackb29b") return user;
+  const data = { ...(user.data || {}), xp: Math.max(180500, Number(user.data && user.data.xp) || 0), rankTitle: "Ghost" };
+  await saveUserData("zackb29b", data);
+  user.data = data;
+  return user;
+}
 async function findUserByEmail(email) {
   const normalized = String(email || "").trim().toLowerCase();
   if (!useSupabase) {
@@ -243,6 +253,7 @@ app.post("/api/auth/login", async (req, res) => {
     if (candidate.length !== expected.length || !crypto.timingSafeEqual(candidate, expected)) {
       return res.status(401).json({ error: "Pseudo ou mot de passe incorrect." });
     }
+    await applyZackGhostProfile(user);
     issueSession(res, user.username);
     res.json({ username: user.username });
   } catch (error) {
@@ -461,7 +472,8 @@ app.get("/api/user/data", async (req, res) => {
   try {
     const username = currentUser(req);
     if (!username) return res.status(401).json({ error: "Non connecté." });
-    const user = await findUser(username.toLowerCase());
+    let user = await findUser(username.toLowerCase());
+    if (user) user = await applyZackGhostProfile(user);
     res.json(user ? (user.data || { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, games: 0, wins: 0, kills: 0 }) : {});
   } catch (error) {
     console.error("Erreur lecture progression:", error);

@@ -10,3 +10,6 @@ Améliorations de cette version :
 Les fichiers server.js, online.js, package.json et grenades.js sont conservés depuis la version fournie.
 Les statistiques utilisent les données déjà enregistrées par le jeu. La personnalisation visuelle est locale à l'appareil.
 Voir INSTALLATION.txt pour le déploiement.
+
+
+Profil ZackB29B : au prochain chargement connecté, le serveur applique le grade Ghost et garantit le niveau 20 (180 500 XP minimum), sans modifier les statistiques, les armes ni les données sociales.
