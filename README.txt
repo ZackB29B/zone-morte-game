@@ -13,3 +13,9 @@ Voir INSTALLATION.txt pour le déploiement.
 
 
 Profil ZackB29B : au prochain chargement connecté, le serveur applique le grade Ghost et garantit le niveau 20 (180 500 XP minimum), sans modifier les statistiques, les armes ni les données sociales.
+
+CINEMATIQUE D'INTRODUCTION
+- Une cinématique d'accueil s'affiche au lancement, avant le menu et la connexion.
+- Le joueur peut cliquer sur « Entrer dans la zone » ou « Passer l'introduction ».
+- Elle se ferme automatiquement après environ 10 secondes.
+- Aucun son n'est lancé automatiquement, pour respecter les restrictions des navigateurs.
