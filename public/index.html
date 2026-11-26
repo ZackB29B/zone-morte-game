@@ -431,7 +431,8 @@ body.lobby-active #lobby .lobby {
         <dt>Escaliers</dt><dd>Marcher sur les marches pour monter ou descendre (bâtiments au toit clair)</dd>
         <dt>1 2 3 / molette</dt><dd>Changer d'arme</dd>
       </dl>
-      <div class="modes"><button id="go" type="button">Mobile</button><button id="gopc" type="button">PC</button></div>
+      <p id="deviceHint" class="note" role="status" aria-live="polite">Détection de ton appareil…</p>
+      <div class="modes"><button id="go" type="button">Continuer</button><button id="gopc" type="button" class="chip">Changer de mode</button></div>
     </div>
   </div>
 
@@ -2522,8 +2523,36 @@ body.lobby-active #lobby .lobby {
     finally { AUTH.busy = false; $('asubmit').disabled = false; }
   });
   $('alogout').addEventListener('click', async () => { try { await api('/api/auth/logout', {}); } catch (_) {} AUTH.user = null; $('lobby').hidden = true; $('menu').hidden = false; G.state = 'menu'; });
-  $('go').addEventListener('click', () => enter(true));
-  $('gopc').addEventListener('click', () => enter(false));
+  // Détection automatique du type d'appareil au lancement.
+  // La détection privilégie les capacités tactiles et le pointeur principal,
+  // avec un secours basé sur la taille d'écran pour certains téléphones/tablettes.
+  function detectDeviceMode() {
+    const touchPoints = Number(navigator.maxTouchPoints || 0);
+    const coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const smallScreen = !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+    const mobileUA = /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent || '');
+    const tabletUA = /iPad|Tablet/i.test(navigator.userAgent || '');
+    return (touchPoints > 0 && (coarsePointer || smallScreen)) || mobileUA || tabletUA;
+  }
+  let detectedTouchMode = detectDeviceMode();
+  function updateDeviceChoice() {
+    const primary = $('go'), alternate = $('gopc'), hint = $('deviceHint');
+    const deviceName = detectedTouchMode ? 'téléphone ou tablette' : 'ordinateur';
+    const alternateName = detectedTouchMode ? 'ordinateur' : 'mode tactile';
+    primary.textContent = 'Jouer · ' + (detectedTouchMode ? 'Mobile' : 'PC');
+    alternate.textContent = 'Utiliser le mode ' + alternateName;
+    hint.textContent = 'Appareil détecté : ' + deviceName + '. Les commandes seront adaptées automatiquement.';
+    primary.classList.add('primary');
+    alternate.classList.remove('primary');
+  }
+  updateDeviceChoice();
+  $('go').addEventListener('click', () => enter(detectedTouchMode));
+  $('gopc').addEventListener('click', () => enter(!detectedTouchMode));
+  // Réévalue si l'utilisateur redimensionne la fenêtre ou change d'écran avant de jouer.
+  if (window.matchMedia) {
+    const deviceQuery = window.matchMedia('(pointer: coarse)');
+    if (deviceQuery.addEventListener) deviceQuery.addEventListener('change', () => { detectedTouchMode = detectDeviceMode(); updateDeviceChoice(); });
+  }
   $('again').addEventListener('click', () => { if (ONLINE) leaveMatch(); else start(); });
   $('quit').addEventListener('click', () => { if (ONLINE) leaveMatch(); else showLobby(); });
   $('play').addEventListener('click', start);
