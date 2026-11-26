@@ -379,9 +379,54 @@ body.lobby-active #lobby .lobby {
   #lobby .lobby-nav .chip { width: 100%; }
 }
 
+
+/* CINEMATIQUE D'INTRO — avant l'écran de connexion */
+#zmIntro{position:fixed;inset:0;z-index:100000;background:#080c0f;color:#e8e5d9;display:grid;place-items:center;overflow:hidden;font-family:var(--mono,monospace);isolation:isolate}
+#zmIntro[hidden]{display:none}
+#zmIntro .zi-sky{position:absolute;inset:-8%;background:radial-gradient(ellipse at 72% 38%,#6a4930 0,transparent 25%),radial-gradient(ellipse at 20% 70%,#263a3b 0,transparent 38%),linear-gradient(115deg,#080d11 5%,#182326 48%,#090d10 100%);animation:zi-pan 12s ease-in-out both}
+#zmIntro .zi-grid{position:absolute;inset:0;opacity:.18;background-image:linear-gradient(#a6b4ad22 1px,transparent 1px),linear-gradient(90deg,#a6b4ad22 1px,transparent 1px);background-size:54px 54px;transform:perspective(500px) rotateX(58deg) scale(1.7);transform-origin:bottom;animation:zi-grid 10s linear both}
+#zmIntro .zi-haze{position:absolute;inset:0;background:linear-gradient(90deg,#050809bb,transparent 55%,#05080988),linear-gradient(0deg,#050809 0,transparent 40%,#05080966);}
+#zmIntro .zi-scan{position:absolute;left:0;right:0;height:2px;top:-5%;background:#c99b4b88;box-shadow:0 0 22px 5px #c99b4b44;animation:zi-scan 5s linear infinite}
+#zmIntro .zi-content{position:relative;width:min(1000px,88vw);padding:clamp(24px,6vw,72px);animation:zi-arrive 1.1s ease-out both}
+#zmIntro .zi-kicker{color:#d5a84d;font-size:11px;letter-spacing:.32em;text-transform:uppercase;display:flex;align-items:center;gap:12px}
+#zmIntro .zi-kicker:before{content:"";width:34px;height:1px;background:#d5a84d}
+#zmIntro h1{font-family:var(--display,Impact,sans-serif);font-size:clamp(64px,13vw,150px);line-height:.78;letter-spacing:.025em;margin:28px 0 22px;text-transform:uppercase;text-shadow:0 8px 40px #000;animation:zi-title 1.4s .3s both}
+#zmIntro h1 span{color:#d3a34b}
+#zmIntro .zi-sub{max-width:540px;color:#c1c8c4;font-size:clamp(12px,1.5vw,15px);line-height:1.8;letter-spacing:.08em;text-transform:uppercase;animation:zi-arrive 1s .8s both}
+#zmIntro .zi-meta{display:flex;gap:26px;flex-wrap:wrap;margin-top:34px;color:#82918d;font-size:10px;letter-spacing:.16em;text-transform:uppercase;animation:zi-arrive 1s 1.1s both}
+#zmIntro .zi-meta b{display:block;color:#e5e0d2;font-size:14px;margin-top:7px;letter-spacing:.08em}
+#zmIntro .zi-actions{display:flex;align-items:center;gap:18px;margin-top:42px;animation:zi-arrive 1s 1.4s both}
+#zmIntro button{border:1px solid #c99b4b;background:#c99b4b;color:#111;padding:14px 24px;font:700 11px var(--mono,monospace);letter-spacing:.16em;text-transform:uppercase;cursor:pointer}
+#zmIntro button:hover{background:#e2bd70}
+#zmIntro .zi-skip{background:transparent;color:#d5d9d2;border-color:#68736f}
+#zmIntro .zi-status{position:absolute;right:clamp(20px,5vw,60px);bottom:28px;color:#78847e;font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+#zmIntro .zi-status:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#c99b4b;margin-right:9px;box-shadow:0 0 12px #c99b4b}
+#zmIntro.zi-out{animation:zi-out .8s ease forwards;pointer-events:none}
+@keyframes zi-pan{0%{transform:scale(1.12) translateX(2%)}100%{transform:scale(1) translateX(-1%)}}
+@keyframes zi-grid{from{transform:perspective(500px) rotateX(58deg) scale(2) translateY(8%)}to{transform:perspective(500px) rotateX(58deg) scale(1.5) translateY(-4%)}}
+@keyframes zi-scan{to{top:105%}}
+@keyframes zi-arrive{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes zi-title{from{opacity:0;letter-spacing:.18em;filter:blur(8px)}to{opacity:1;letter-spacing:.025em;filter:blur(0)}}
+@keyframes zi-out{to{opacity:0;visibility:hidden}}
+@media(max-width:600px){#zmIntro .zi-content{width:90vw;padding:22px 10px}#zmIntro .zi-meta{gap:16px}#zmIntro .zi-actions{margin-top:28px}#zmIntro .zi-status{font-size:8px}}
+@media(prefers-reduced-motion:reduce){#zmIntro *,#zmIntro *:before{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
 </style>
 </head>
 <body>
+
+
+<div id="zmIntro" role="dialog" aria-label="Cinématique d'introduction de Zone Morte">
+  <div class="zi-sky"></div><div class="zi-grid"></div><div class="zi-haze"></div><div class="zi-scan"></div>
+  <div class="zi-content">
+    <div class="zi-kicker">Transmission sécurisée · Bastion 9</div>
+    <h1>ZONE<br><span>MORTE</span></h1>
+    <p class="zi-sub">Signal détecté. Secteur sous quarantaine. Les communications sont instables. Prépare-toi à entrer dans la zone.</p>
+    <div class="zi-meta"><div>Opération<b>Dernier rempart</b></div><div>Secteur<b>Bastion 9</b></div><div>Statut<b>Accès autorisé</b></div></div>
+    <div class="zi-actions"><button type="button" id="ziEnter">Entrer dans la zone</button><button type="button" class="zi-skip" id="ziSkip">Passer l'introduction</button></div>
+  </div>
+  <div class="zi-status">Initialisation du système · Connexion ensuite</div>
+</div>
 
 <div id="stage">
   <canvas id="c"></canvas>
@@ -2945,6 +2990,23 @@ body.lobby-active #lobby .lobby {
   });
 })();
 </script>
+
+<script>
+(function(){
+  var intro=document.getElementById('zmIntro'); if(!intro) return;
+  var finished=false, timer;
+  function closeIntro(){
+    if(finished) return; finished=true; clearTimeout(timer);
+    intro.classList.add('zi-out');
+    window.setTimeout(function(){intro.hidden=true; intro.remove();},850);
+  }
+  document.getElementById('ziEnter').addEventListener('click',closeIntro);
+  document.getElementById('ziSkip').addEventListener('click',closeIntro);
+  timer=window.setTimeout(closeIntro,10500);
+  document.addEventListener('keydown',function(e){if(!finished && (e.key==='Escape'||e.key==='Enter')) closeIntro();});
+})();
+</script>
+
 <script src="/grenades.js?v=7"></script>
 </body>
 </html>
