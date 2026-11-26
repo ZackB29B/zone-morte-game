@@ -973,12 +973,12 @@
   }
 
   const WT = 14, DW = 50;
-  function wallLine(x0, y0, len, vert, withDoor, interior) {
+  function wallLine(x0, y0, len, vert, withDoor) {
     const R = (a, l) => vert ? { x: x0, y: y0 + a, w: WT, h: l } : { x: x0 + a, y: y0, w: l, h: WT };
-    if (!withDoor) { obs.push({ ...R(0, len), interior: !!interior }); return; }
+    if (!withDoor) { obs.push(R(0, len)); return; }
     const g = rnd(WT + 4, len - WT - 4 - DW);
-    obs.push({ ...R(0, g), interior: !!interior }); obs.push({ ...R(g + DW, len - g - DW), interior: !!interior });
-    const d = R(g, DW); d.door = true; d.interior = !!interior; d.hp = 100; d.dead = false; obs.push(d);
+    obs.push(R(0, g)); obs.push(R(g + DW, len - g - DW));
+    const d = R(g, DW); d.door = true; d.hp = 100; d.dead = false; obs.push(d);
   }
   function addBuilding(x, y, w, h) {
     const n0 = obs.length;
@@ -987,108 +987,17 @@
     for (let i = 0; i < nd; i++) op[sides[i]] = true;
     wallLine(x, y, w, false, !!op.n); wallLine(x, y + h - WT, w, false, !!op.s);
     wallLine(x, y, h, true, !!op.w); wallLine(x + w - WT, y, h, true, !!op.e);
-    if (w > 260) wallLine(x + w / 2 - WT / 2, y + WT, h - 2 * WT, true, true, true);
-    // Les portes disposent d'un couloir libre : aucun élément intérieur ni escalier
-    // ne doit empiéter sur leur ouverture.
-    const doors = obs.slice(n0).filter(o => o.door);
-    const doorZones = doors.map(d => ({
-      x: d.x - 38, y: d.y - 38, w: d.w + 76, h: d.h + 76
-    }));
-    const overlaps = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-    if (doorZones.length) {
-      // Supprime uniquement les petits segments intérieurs qui boucheraient le passage.
-      for (let i = obs.length - 1; i >= n0; i--) {
-        const o = obs[i];
-        if (!o.door && o.bi === undefined && doorZones.some(z => overlaps(o, z))) obs.splice(i, 1);
-      }
-    }
+    if (w > 260) wallLine(x + w / 2 - WT / 2, y + WT, h - 2 * WT, true, true);
     if (Math.random() < .35) {
       const bi = blds.length - 1;
-      const stairSize = 44;
-      const candidates = [
-        { x: x + w * .25 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
-        { x: x + w * .70 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
-        { x: x + w * .25 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize },
-        { x: x + w * .70 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize }
-      ].filter(st => st.x >= x + WT + 8 && st.y >= y + WT + 8 && st.x + st.w <= x + w - WT - 8 && st.y + st.h <= y + h - WT - 8 && !doorZones.some(z => overlaps(st, z)));
-      if (candidates.length) {
-        // Choisit l'emplacement le plus éloigné de toutes les portes.
-        candidates.sort((a, b) => {
-          const score = q => Math.min(Infinity, ...doors.map(d => Math.hypot(q.x + q.w / 2 - (d.x + d.w / 2), q.y + q.h / 2 - (d.y + d.h / 2))));
-          return score(b) - score(a);
-        });
-        blds[bi].st = candidates[0];
-      }
-      const U = (rx, ry, rw, rh) => {
-        if (rw <= 1 || rh <= 1) return;
-        const wall = { x: rx, y: ry, w: rw, h: rh };
-        if (!doorZones.some(z => overlaps(wall, z))) obs.push({ ...wall, lv: 1, bi });
-      };
+      blds[bi].st = { x: x + WT + 8, y: y + WT + 8, w: 44, h: 44 };
+      const U = (rx, ry, rw, rh) => { if (rw > 1 && rh > 1) obs.push({ x: rx, y: ry, w: rw, h: rh, lv: 1, bi }); };
       U(x, y, w, WT); U(x, y + h - WT, w, WT); U(x, y, WT, h); U(x + w - WT, y, WT, h);
       const G2 = 60;
-      if (w >= 230) {
-        const px = x + w * .55, len = h - 2 * WT, g = rnd(10, len - 10 - G2);
-        U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2);
-      } else {
-        const py = y + h * .55, len = w - 2 * WT, g = rnd(60, len - 10 - G2);
-        U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT);
-      }
+      if (w >= 230) { const px = x + w * .55, len = h - 2 * WT, g = rnd(10, len - 10 - G2); U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2); }
+      else { const py = y + h * .55, len = w - 2 * WT, g = rnd(60, len - 10 - G2); U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT); }
     }
     for (let i = n0; i < obs.length; i++) if (obs[i].bi === undefined) obs[i].bi = blds.length - 1;
-    buildBuildingRooms(blds[blds.length - 1]);
-  }
-
-  // Découpe le toit en zones correspondant aux pièces réellement accessibles.
-  // Les ouvertures dans les cloisons restent des passages entre deux zones.
-  function buildBuildingRooms(building) {
-    const cell = 14;
-    const x0 = building.x + WT + 1, y0 = building.y + WT + 1;
-    const cols = Math.max(1, Math.floor((building.w - 2 * WT - 2) / cell));
-    const rows = Math.max(1, Math.floor((building.h - 2 * WT - 2) / cell));
-    const walls = obs.filter(o => o.bi === blds.length - 1 && (o.interior || o.lv === 1) && !o.dead && !o.open);
-    const grid = Array.from({ length: rows }, () => Array(cols).fill(-1));
-    for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
-      const px = x0 + gx * cell + cell / 2, py = y0 + gy * cell + cell / 2;
-      if (!walls.some(w => px >= w.x && px <= w.x + w.w && py >= w.y && py <= w.y + w.h)) grid[gy][gx] = -2;
-    }
-    const rooms = [];
-    for (let gy = 0; gy < rows; gy++) for (let gx = 0; gx < cols; gx++) {
-      if (grid[gy][gx] !== -2) continue;
-      const id = rooms.length, cells = [], queue = [[gx, gy]];
-      grid[gy][gx] = id;
-      for (let qi = 0; qi < queue.length; qi++) {
-        const [cx, cy] = queue[qi]; cells.push([cx, cy]);
-        for (const [nx, ny] of [[cx+1,cy],[cx-1,cy],[cx,cy+1],[cx,cy-1]]) {
-          if (ny >= 0 && ny < rows && nx >= 0 && nx < cols && grid[ny][nx] === -2) {
-            grid[ny][nx] = id; queue.push([nx, ny]);
-          }
-        }
-      }
-      const path = typeof Path2D !== 'undefined' ? new Path2D() : null;
-      if (path) for (const [cx, cy] of cells) path.rect(x0 + cx * cell, y0 + cy * cell, cell + .5, cell + .5);
-      rooms.push({ cells, path, alpha: 1 });
-    }
-    building.roomGrid = grid;
-    building.roomX = x0; building.roomY = y0; building.roomCell = cell;
-    building.roomCols = cols; building.roomRows = rows; building.rooms = rooms;
-    building.activeRoom = -1;
-  }
-  function roomAtPosition(building, px, py) {
-    const gx = Math.floor((px - building.roomX) / building.roomCell);
-    const gy = Math.floor((py - building.roomY) / building.roomCell);
-    if (gy >= 0 && gy < building.roomRows && gx >= 0 && gx < building.roomCols) {
-      const id = building.roomGrid[gy][gx];
-      if (id >= 0) return id;
-    }
-    // Si le joueur se trouve juste sur une cloison, recherche la cellule libre la plus proche.
-    let best = -1, bestD = Infinity;
-    for (let id = 0; id < building.rooms.length; id++) for (const [cx, cy] of building.rooms[id].cells) {
-      const x = building.roomX + (cx + .5) * building.roomCell;
-      const y = building.roomY + (cy + .5) * building.roomCell;
-      const d = (x-px)*(x-px) + (y-py)*(y-py);
-      if (d < bestD) { bestD = d; best = id; }
-    }
-    return bestD < 42 * 42 ? best : -1;
   }
   function stabTarget(p) {
     let best = null, bd = 1e9;
@@ -1912,15 +1821,8 @@
     }
 
     for (const b of blds) {
-      const inside = p.x > b.x + WT && p.x < b.x + b.w - WT && p.y > b.y + WT && p.y < b.y + b.h - WT;
-      b.activeRoom = inside ? roomAtPosition(b, p.x, p.y) : -1;
-      // Seule la pièce occupée s'ouvre ; les autres pièces du même bâtiment
-      // gardent leur toit opaque. Chaque zone possède sa propre transition.
-      for (let ri = 0; ri < (b.rooms || []).length; ri++) {
-        const target = inside && ri === b.activeRoom ? 0 : 1;
-        b.rooms[ri].alpha += (target - b.rooms[ri].alpha) * Math.min(1, dt * 7);
-      }
-      b.roofA = 1;
+      const inside = p.x > b.x + 4 && p.x < b.x + b.w - 4 && p.y > b.y + 4 && p.y < b.y + b.h - 4;
+      b.roofA += ((inside ? 0 : 1) - b.roofA) * Math.min(1, dt * 7);
     }
 
     // joueur
@@ -2135,65 +2037,10 @@
       }
     }
     for (const q of parts) { ctx.globalAlpha = clamp(q.life * 3, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(q.x - 2, q.y - 2, 4, 4); }
-    // Chaque pièce possède son propre toit : seule celle du joueur devient transparente.
     for (const b of blds) {
-      if (b.x > cx + W || b.x + b.w < cx || b.y > cy + H || b.y + b.h < cy) continue;
-      const rx = b.x + WT, ry = b.y + WT, rw = b.w - 2 * WT, rh = b.h - 2 * WT;
-      const rooms = b.rooms || [];
-      for (const room of rooms) {
-        if (room.alpha < .02) continue;
-        ctx.save();
-        ctx.globalAlpha = room.alpha;
-        ctx.fillStyle = b.st ? '#34414a' : '#252d32';
-        if (room.path) ctx.fill(room.path);
-        else {
-          ctx.beginPath();
-          for (const [gx, gy] of room.cells) ctx.rect(b.roomX + gx * b.roomCell, b.roomY + gy * b.roomCell, b.roomCell + .5, b.roomCell + .5);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-      // Finition du toit : contour du bâtiment et panneaux discrets.
-      ctx.save();
-      ctx.strokeStyle = '#111719'; ctx.lineWidth = 4; ctx.strokeRect(rx + 1, ry + 1, rw - 2, rh - 2);
-      ctx.strokeStyle = '#46545c'; ctx.lineWidth = 2; ctx.strokeRect(rx + 6, ry + 6, rw - 12, rh - 12);
-      ctx.restore();
-    }
-    // Les toits sont dessinés au-dessus de la scène pour masquer l'intérieur.
-    // On redessine ensuite les murs et les portes par-dessus le toit : ils restent
-    // toujours visibles, même lorsque les pièces voisines sont couvertes.
-    for (const o of obs) {
-      // Couche de finition des murs : les murs de bâtiment sont filtrés par étage,
-      // mais ne dépendent plus de la visibilité des objets/du toit.
-      if (o.dead || o.x > cx + W || o.x + o.w < cx || o.y > cy + H || o.y + o.h < cy) continue;
-      if (o.bi !== undefined) {
-        const wallLevel = o.lv || 0;
-        const visibleBuildingWall = (p.lv || 0) === 0
-          ? wallLevel === 0
-          : (o.bi === p.bi && wallLevel === 1);
-        if (!visibleBuildingWall) continue;
-      } else if (!objVis(o, p)) continue;
-      if (o.open) {
-        ctx.save();
-        ctx.strokeStyle = '#d1a45b'; ctx.lineWidth = 5; ctx.lineCap = 'square';
-        ctx.beginPath();
-        if (o.w > o.h) { ctx.moveTo(o.x, o.y + o.h / 2); ctx.lineTo(o.x + o.w, o.y + o.h / 2); }
-        else { ctx.moveTo(o.x + o.w / 2, o.y); ctx.lineTo(o.x + o.w / 2, o.y + o.h); }
-        ctx.stroke(); ctx.restore(); continue;
-      }
-      // Murs plus contrastés que le toit pour rester clairement lisibles.
-      ctx.save();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = o.door ? '#76552d' : '#35434b';
-      ctx.fillRect(o.x, o.y, o.w, o.h);
-      if (o.w > 6 && o.h > 6) {
-        ctx.fillStyle = o.door ? '#a27a40' : '#52616a';
-        ctx.fillRect(o.x + 3, o.y + 3, Math.max(1, o.w - 6), Math.max(1, o.h - 6));
-      }
-      ctx.strokeStyle = o.door ? '#d0a45b' : '#82929b';
-      ctx.lineWidth = 2.5;
-      ctx.strokeRect(o.x + .5, o.y + .5, Math.max(0, o.w - 1), Math.max(0, o.h - 1));
-      ctx.restore();
+      if (b.roofA < .02 || b.x > cx + W || b.x + b.w < cx || b.y > cy + H || b.y + b.h < cy) continue;
+      ctx.globalAlpha = b.roofA; ctx.fillStyle = b.st ? '#34414a' : '#2b3338'; ctx.fillRect(b.x + WT, b.y + WT, b.w - 2 * WT, b.h - 2 * WT);
+      ctx.strokeStyle = '#3d4a52'; ctx.lineWidth = 2; ctx.strokeRect(b.x + WT + 6, b.y + WT + 6, b.w - 2 * WT - 12, b.h - 2 * WT - 12);
     }
     ctx.globalAlpha = 1;
 
