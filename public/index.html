@@ -665,7 +665,7 @@ body.lobby-active #lobby .lobby {
     { n: 'Ghost',      desc: 'Presque aucune erreur, vision large, entendent tout.', err: .015, turn: 8.5, dmg: 1.2, spd: 182, view: 680, spread: .6, hp: 150, cd: .8, cone: 1.8, hear: 400, ar: 100, react: .65,  wk: [0, 3, 2] }
   ];
   const SAVE_KEY = 'zonemorte.v1';
-  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0, graphics: 'auto', callsign: 'Recrue', emblem: '◆', accent: 'gold', compactHud: false };
+  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0, graphics: 'auto', callsign: 'Recrue', emblem: '◆', accent: 'gold', compactHud: false, rankTitle: '' };
   try { const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (r && typeof r === 'object') Object.assign(SAVE, r); } catch (_) {}
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
   if (!SAVE.unlocked || typeof SAVE.unlocked !== 'object') SAVE.unlocked = { pistol: true };
@@ -710,6 +710,7 @@ body.lobby-active #lobby .lobby {
           if (Array.isArray(d.loadoutSlots)) SAVE.loadoutSlots = [...new Set(d.loadoutSlots.filter(k => WP[k] && (d.unlocked || SAVE.unlocked)[k]))].slice(0, 6);
           if (!SAVE.loadoutSlots.includes('pistol')) SAVE.loadoutSlots.unshift('pistol'); SAVE.loadoutSlots = SAVE.loadoutSlots.slice(0, 6);
           if (typeof d.xp === 'number') SAVE.xp = Math.max(0, d.xp);
+          if (typeof d.rankTitle === 'string') SAVE.rankTitle = d.rankTitle;
           if (!SAVE.unlocked[SAVE.loadout] || !WP[SAVE.loadout]) SAVE.loadout = 'pistol';
           if (typeof d.games === 'number') SAVE.games = d.games;
           if (typeof d.wins === 'number') SAVE.wins = d.wins;
@@ -2598,9 +2599,10 @@ body.lobby-active #lobby .lobby {
     $('shopPanel').hidden = !inShop;
     $('socialPanel').hidden = !inSocial;
     $('profilePanel').hidden = !inProfile; $('customPanel').hidden = !inCustom; $('advancedPanel').hidden = !inAdvanced;
-    $('profileEmblem').textContent = s.emblem; $('profileName').textContent = s.callsign || (AUTH.user || 'Recrue');
+    $('profileEmblem').textContent = s.emblem; $('profileName').textContent = s.rankTitle || s.callsign || (AUTH.user || 'Recrue');
     const level = Math.floor(Math.sqrt(Math.max(0, s.xp) / 500)) + 1, floorXp = (level - 1) ** 2 * 500, nextXp = level ** 2 * 500, progress = Math.max(0, Math.min(100, (s.xp - floorXp) / Math.max(1, nextXp - floorXp) * 100));
-    $('profileRank').textContent = 'NIVEAU ' + level + ' · ' + (level >= 20 ? 'Vétéran' : level >= 10 ? 'Éclaireur' : level >= 5 ? 'Opérateur' : 'Recrue'); $('profileXpBar').style.width = progress + '%'; $('profileXpText').textContent = s.xp + ' / ' + nextXp + ' XP · ' + Math.round(progress) + '% vers le niveau suivant';
+    const rankLabel = s.rankTitle || (level >= 20 ? 'Vétéran' : level >= 10 ? 'Éclaireur' : level >= 5 ? 'Opérateur' : 'Recrue');
+    $('profileRank').textContent = 'NIVEAU ' + level + ' · ' + rankLabel; $('profileXpBar').style.width = progress + '%'; $('profileXpText').textContent = s.xp + ' / ' + nextXp + ' XP · ' + Math.round(progress) + '% vers le niveau suivant';
     const ratio = s.games ? Math.round(s.wins / s.games * 100) : 0, avg = s.games ? (s.kills / s.games).toFixed(1) : '0.0';
     $('profileMetrics').innerHTML = [['PARTIES',s.games],['VICTOIRES',s.wins],['ÉLIMINATIONS',s.kills],['TAUX DE VICTOIRE',ratio + '%'],['ÉLIMINATIONS / PARTIE',avg],['XP TOTAL',s.xp]].map(([k,v]) => '<div class="profile-stat"><span>' + k + '</span><b>' + v + '</b></div>').join('');
     $('profileSummary').textContent = s.games ? 'Tu as disputé ' + s.games + ' partie(s), remporté ' + s.wins + ' victoire(s) et réalisé ' + s.kills + ' élimination(s). Continue à progresser !' : 'Aucune mission enregistrée pour le moment. Lance une partie pour commencer ton historique.';
