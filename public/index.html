@@ -1108,34 +1108,61 @@ body.lobby-active #lobby .lobby {
     }
     if (Math.random() < .35) {
       const bi = blds.length - 1;
+      const G2 = 60;
+      // Cloisons intérieures : on les découpe autour des couloirs de porte.
+      // On ne recrée surtout pas le périmètre complet en étage 1 : cela
+      // doublonnait les murs extérieurs et pouvait masquer leurs ouvertures.
+      const U = (rx, ry, rw, rh) => {
+        if (rw <= 1 || rh <= 1) return;
+        const vertical = rh > rw;
+        const wall = { x: rx, y: ry, w: rw, h: rh };
+        let intervals = vertical ? [[ry, ry + rh]] : [[rx, rx + rw]];
+        for (const z of doorZones) {
+          const crosses = vertical
+            ? (wall.x < z.x + z.w && wall.x + wall.w > z.x)
+            : (wall.y < z.y + z.h && wall.y + wall.h > z.y);
+          if (!crosses) continue;
+          const cutA = vertical ? z.y : z.x;
+          const cutB = vertical ? z.y + z.h : z.x + z.w;
+          const next = [];
+          for (const [a, b] of intervals) {
+            if (cutB <= a || cutA >= b) next.push([a, b]);
+            else {
+              if (cutA - a > 8) next.push([a, cutA]);
+              if (b - cutB > 8) next.push([cutB, b]);
+            }
+          }
+          intervals = next;
+        }
+        for (const [a, b] of intervals) {
+          if (b - a < 10) continue;
+          if (vertical) obs.push({ x: rx, y: a, w: rw, h: b - a, lv: 1, bi, interior: true });
+          else obs.push({ x: a, y: ry, w: b - a, h: rh, lv: 1, bi, interior: true });
+        }
+      };
+      if (w >= 230) {
+        const px = x + w * .55, len = h - 2 * WT, g = rnd(10, Math.max(11, len - 10 - G2));
+        U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2);
+      } else {
+        const py = y + h * .55, len = w - 2 * WT, g = rnd(60, Math.max(61, len - 10 - G2));
+        U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT);
+      }
+
       const stairSize = 44;
       const candidates = [
         { x: x + w * .25 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
         { x: x + w * .70 - stairSize / 2, y: y + h * .25 - stairSize / 2, w: stairSize, h: stairSize },
         { x: x + w * .25 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize },
         { x: x + w * .70 - stairSize / 2, y: y + h * .70 - stairSize / 2, w: stairSize, h: stairSize }
-      ].filter(st => st.x >= x + WT + 8 && st.y >= y + WT + 8 && st.x + st.w <= x + w - WT - 8 && st.y + st.h <= y + h - WT - 8 && !doorZones.some(z => overlaps(st, z)));
+      ].filter(st => st.x >= x + WT + 8 && st.y >= y + WT + 8 && st.x + st.w <= x + w - WT - 8 && st.y + st.h <= y + h - WT - 8
+        && !doorZones.some(z => overlaps(st, z))
+        && !obs.some(o => o.bi === bi && (o.interior || o.lv === 1) && overlaps(st, o)));
       if (candidates.length) {
-        // Choisit l'emplacement le plus éloigné de toutes les portes.
         candidates.sort((a, b) => {
-          const score = q => Math.min(Infinity, ...doors.map(d => Math.hypot(q.x + q.w / 2 - (d.x + d.w / 2), q.y + q.h / 2 - (d.y + d.h / 2))));
+          const score = q => doors.length ? Math.min(...doors.map(d => Math.hypot(q.x + q.w / 2 - (d.x + d.w / 2), q.y + q.h / 2 - (d.y + d.h / 2)))) : Infinity;
           return score(b) - score(a);
         });
         blds[bi].st = candidates[0];
-      }
-      const U = (rx, ry, rw, rh) => {
-        if (rw <= 1 || rh <= 1) return;
-        const wall = { x: rx, y: ry, w: rw, h: rh };
-        if (!doorZones.some(z => overlaps(wall, z))) obs.push({ ...wall, lv: 1, bi });
-      };
-      U(x, y, w, WT); U(x, y + h - WT, w, WT); U(x, y, WT, h); U(x + w - WT, y, WT, h);
-      const G2 = 60;
-      if (w >= 230) {
-        const px = x + w * .55, len = h - 2 * WT, g = rnd(10, len - 10 - G2);
-        U(px, y + WT, WT, g); U(px, y + WT + g + G2, WT, len - g - G2);
-      } else {
-        const py = y + h * .55, len = w - 2 * WT, g = rnd(60, len - 10 - G2);
-        U(x + WT, py, g, WT); U(x + WT + g + G2, py, len - g - G2, WT);
       }
     }
     for (let i = n0; i < obs.length; i++) if (obs[i].bi === undefined) obs[i].bi = blds.length - 1;
