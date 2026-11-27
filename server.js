@@ -68,12 +68,16 @@ async function findUser(usernameKey) {
 }
 async function findUserByUsername(username) {
   const key = String(username || "").trim().toLowerCase();
+  if (!key) return null;
   const exact = await findUser(key);
   if (exact) return exact;
-  if (!useSupabase || !key) return null;
-  const params = new URLSearchParams({ select: "username,username_key,salt,password_hash,data", username: `ilike.${key}`, limit: "1" });
+  if (!useSupabase) return null;
+  // Comptes dont username_key est vide / différent : recherche insensible à la casse
+  // sur username_key ET username (les _ sont échappés, sinon ils agissent comme jokers).
+  const pat = key.replace(/[\\%_]/g, m => "\\" + m);
+  const params = new URLSearchParams({ select: "username,username_key,salt,password_hash,data", or: `(username_key.ilike.${pat},username.ilike.${pat})`, limit: "5" });
   const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
-  const row = rows && rows[0];
+  const row = (Array.isArray(rows) ? rows : []).find(r => String(r.username_key || "").toLowerCase() === key || String(r.username || "").toLowerCase() === key);
   return row ? { username: row.username, usernameKey: String(row.username_key || row.username || "").toLowerCase(), salt: row.salt, passwordHash: row.password_hash, data: row.data || {} } : null;
 }
 async function createUser(user) {
@@ -104,16 +108,6 @@ async function saveUserData(usernameKey, data) {
   }
   await supabaseRequest("zm_users", { method: "PATCH", query: `?username_key=eq.${encodeURIComponent(usernameKey)}`, prefer: "return=minimal", body: { data } });
   return true;
-}
-
-// Profil spécial demandé pour le compte ZackB29B : grade Ghost et niveau 20 minimum.
-// Les statistiques, armes et données sociales existantes sont conservées.
-async function applyZackGhostProfile(user) {
-  if (!user || String(user.usernameKey || user.username || "").toLowerCase() !== "zackb29b") return user;
-  const data = { ...(user.data || {}), xp: Math.max(180500, Number(user.data && user.data.xp) || 0), rankTitle: "Ghost" };
-  await saveUserData("zackb29b", data);
-  user.data = data;
-  return user;
 }
 async function findUserByEmail(email) {
   const normalized = String(email || "").trim().toLowerCase();
@@ -253,7 +247,6 @@ app.post("/api/auth/login", async (req, res) => {
     if (candidate.length !== expected.length || !crypto.timingSafeEqual(candidate, expected)) {
       return res.status(401).json({ error: "Pseudo ou mot de passe incorrect." });
     }
-    await applyZackGhostProfile(user);
     issueSession(res, user.username);
     res.json({ username: user.username });
   } catch (error) {
@@ -361,7 +354,7 @@ app.get("/api/social/search", async (req, res) => {
       // Recherche directe dans Supabase par pseudo normalisé, insensible à la casse.
       const params = new URLSearchParams({
         select: "username,username_key",
-        username_key: `ilike.%${q}%`,
+        or: `(username_key.ilike.*${q}*,username.ilike.*${q}*)`,
         limit: "30"
       });
       const rows = await supabaseRequest("zm_users", { query: `?${params.toString()}` });
@@ -472,8 +465,7 @@ app.get("/api/user/data", async (req, res) => {
   try {
     const username = currentUser(req);
     if (!username) return res.status(401).json({ error: "Non connecté." });
-    let user = await findUser(username.toLowerCase());
-    if (user) user = await applyZackGhostProfile(user);
+    const user = await findUser(username.toLowerCase());
     res.json(user ? (user.data || { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, games: 0, wins: 0, kills: 0 }) : {});
   } catch (error) {
     console.error("Erreur lecture progression:", error);
