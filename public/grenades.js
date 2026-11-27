@@ -259,50 +259,16 @@
     return true;
   }
 
-  // Une cible dans la fumée est invisible ; une ligne de vue qui traverse
-  // le nuage est également bloquée, même si son milieu n'est pas dans la fumée.
-  window.grenadeSmokeContains = entity => {
-    if (!entity) return false;
-    return clouds.some(c =>
-      c.type === 'smoke' && c.life > 0 &&
-      (c.lv || 0) === (entity.lv || 0) &&
-      Math.hypot(entity.x - c.x, entity.y - c.y) < c.r * .9
-    );
-  };
-
   window.grenadeSmokeBlocks = (a, b) => {
-    if (!a || !b) return false;
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const len2 = dx * dx + dy * dy || 1;
     return clouds.some(c => {
       if (c.type !== 'smoke' || c.life <= 0) return false;
-      if ((c.lv || 0) !== (a.lv || 0) || (c.lv || 0) !== (b.lv || 0)) return false;
-      const t = Math.max(0, Math.min(1, ((c.x - a.x) * dx + (c.y - a.y) * dy) / len2));
-      const px = a.x + t * dx, py = a.y + t * dy;
-      return Math.hypot(c.x - px, c.y - py) < c.r * .88;
-    });
-  };
+      if ((c.lv || 0) !== (a.lv || 0)) return false;
 
-  // Indique à l'IA une direction d'évitement quand elle se trouve près du feu.
-  window.grenadeDangerAt = entity => {
-    if (!entity) return null;
-    let vx = 0, vy = 0, danger = false;
-    for (const f of fires) {
-      if ((f.lv || 0) !== (entity.lv || 0)) continue;
-      if ((entity.lv || 0) && f.bi !== entity.bi) continue;
-      const dx = entity.x - f.x, dy = entity.y - f.y;
-      const d = Math.hypot(dx, dy) || 1;
-      const range = f.r + 95;
-      if (d < range) {
-        const strength = (range - d) / range;
-        vx += dx / d * strength;
-        vy += dy / d * strength;
-        danger = true;
-      }
-    }
-    if (!danger) return null;
-    const m = Math.hypot(vx, vy) || 1;
-    return { x: vx / m, y: vy / m };
+      const mx = (a.x + b.x) * .5;
+      const my = (a.y + b.y) * .5;
+
+      return Math.hypot(c.x - mx, c.y - my) < c.r * .85;
+    });
   };
 
   function addParticles(g, color, count = 18) {
@@ -520,13 +486,10 @@
     fires = fires.filter(f => f.life > 0);
 
     for (const e of api.ents) {
-      if (!e) continue;
-      if (e.blind > 0) {
+      if (e && e.blind > 0) {
         e.blind = Math.max(0, e.blind - dt);
         e.tgt = null;
-        if (e.bot) e.lastSeen = null;
       }
-      e.grenadeEvade = e.bot ? (window.grenadeDangerAt(e) || null) : null;
     }
 
     for (let i = grenades.length - 1; i >= 0; i--) {
@@ -611,64 +574,10 @@
       gx.stroke();
     }
 
-    // Effet de flash côté joueur : écran presque entièrement blanc au départ,
-    // puis disparition progressive et douce pendant toute la durée de l'aveuglement.
     if (blind > 0 && api.G.state === 'play') {
-      const progress = Math.max(0, Math.min(1, blind / CFG.flashDuration));
-      const opacity = 0.98 * Math.pow(progress, 0.62);
-      gx.globalAlpha = opacity;
+      gx.globalAlpha = Math.min(.95, blind / CFG.flashDuration);
       gx.fillStyle = '#fff';
       gx.fillRect(0, 0, rect.width, rect.height);
-    }
-
-    // Quand le joueur entre dans un nuage, une couche de fumée passe aussi
-    // devant la caméra : voile gris, volutes lentes et bords légèrement voilés.
-    if (api.G.state === 'play' && player.alive) {
-      let smokeStrength = 0;
-      for (const c of clouds) {
-        if (c.type !== 'smoke' || c.life <= 0) continue;
-        if ((c.lv || 0) !== (player.lv || 0)) continue;
-        const distance = Math.hypot(player.x - c.x, player.y - c.y);
-        const inside = Math.max(0, 1 - distance / (c.r * 1.08));
-        const lifeFade = Math.min(1, c.life / 1.1);
-        smokeStrength = Math.max(smokeStrength, inside * lifeFade);
-      }
-
-      if (smokeStrength > 0.02) {
-        const strength = Math.min(1, smokeStrength);
-        gx.save();
-        gx.globalAlpha = 0.18 + strength * 0.30;
-        gx.fillStyle = '#aeb9ba';
-        gx.fillRect(0, 0, rect.width, rect.height);
-
-        // Volutes semi-transparentes animées, dessinées en coordonnées écran.
-        for (let i = 0; i < 7; i++) {
-          const drift = now * (0.012 + i * 0.0015);
-          const x = ((i * 173 + drift * (i % 2 ? 1 : -1)) % (rect.width + 240)) - 120;
-          const y = rect.height * (0.12 + ((i * 37) % 76) / 100) + Math.sin(now / 850 + i * 1.7) * 22;
-          const radius = Math.max(70, Math.min(rect.width, rect.height) * (0.20 + (i % 3) * 0.055));
-          const grad = gx.createRadialGradient(x, y, 4, x, y, radius);
-          grad.addColorStop(0, 'rgba(226,233,232,0.34)');
-          grad.addColorStop(0.58, 'rgba(190,202,202,0.17)');
-          grad.addColorStop(1, 'rgba(170,184,185,0)');
-          gx.globalAlpha = strength * (0.38 + (i % 3) * 0.08);
-          gx.fillStyle = grad;
-          gx.beginPath();
-          gx.ellipse(x, y, radius * 1.25, radius * 0.58, Math.sin(now / 1700 + i) * 0.22, 0, Math.PI * 2);
-          gx.fill();
-        }
-
-        const vignette = gx.createRadialGradient(
-          rect.width / 2, rect.height / 2, Math.min(rect.width, rect.height) * 0.12,
-          rect.width / 2, rect.height / 2, Math.max(rect.width, rect.height) * 0.72
-        );
-        vignette.addColorStop(0, 'rgba(210,220,220,0)');
-        vignette.addColorStop(1, 'rgba(105,119,121,0.32)');
-        gx.globalAlpha = strength * 0.8;
-        gx.fillStyle = vignette;
-        gx.fillRect(0, 0, rect.width, rect.height);
-        gx.restore();
-      }
     }
 
     gx.globalAlpha = 1;
