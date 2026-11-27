@@ -1298,7 +1298,7 @@
     for (let i = 0; i < w.pel; i++) {
       const a = e.a + (Math.random() - .5) * 2 * w.spread * (e.d ? e.d.spread : 1);
       bullets.push({ x: mx0, y: my0, sx: mx0, sy: my0, vx: Math.cos(a) * w.spd, vy: Math.sin(a) * w.spd,
-        dmg: w.dmg * (e.bot ? e.d.dmg : 1), own: e, lv: e.lv || 0, life: w.rng / w.spd, col: w.col });
+        dmg: w.dmg * (e.bot ? e.d.dmg : 1), weapon: e.cur, own: e, lv: e.lv || 0, life: w.rng / w.spd, col: w.col });
     }
     if (ONLINE && e === ents[0]) netEmit('shot', { x: mx0, y: my0, a: e.a, w: e.cur });
     if (s.mag <= 0) reload(e);
@@ -1328,9 +1328,9 @@
     toast(WP[k].n + ' jetée · ramasse une autre arme');
   }
 
-  function netHit(e, d, k) { if (NET.sock && NET.ok && e.alive) NET.sock.emit('hit', { t: e.nid, d: Math.round(d * 10) / 10, k: k ? 1 : 0 }); }
-  function hurt(e, d, by) {
-    if (ONLINE && e.rem) { if (by === ents[0]) netHit(e, d, 0); return; }
+  function netHit(e, d, k, weapon) { if (NET.sock && NET.ok && e.alive) NET.sock.emit('hit', { t: e.nid, d: Math.round(d * 10) / 10, k: k ? 1 : 0, w: weapon || null }); }
+  function hurt(e, d, by, weapon) {
+    if (ONLINE && e.rem) { if (by === ents[0]) netHit(e, d, 0, weapon); return; }
     hurtLocal(e, d, by);
   }
   function hurtLocal(e, d, by) {
@@ -1848,7 +1848,7 @@
           if ((e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 4) ** 2) {
             if (!b.vis) {
               lastElimShot = { owner: b.own, sx: Number.isFinite(b.sx) ? b.sx : b.x - b.vx * .15, sy: Number.isFinite(b.sy) ? b.sy : b.y - b.vy * .15, ex: b.x, ey: b.y };
-              hurt(e, b.dmg, b.own);
+              hurt(e, b.dmg, b.own, b.weapon);
               if (e.alive) lastElimShot = null;
             }
             dead = true;
