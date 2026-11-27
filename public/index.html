@@ -252,6 +252,39 @@
   .bp-tier.unlocked{border-color:var(--brass)}.bp-tier.claimed{opacity:.72}
   .bp-tier b{color:var(--brass);letter-spacing:.08em}.bp-tier small{color:var(--muted)}
   .bp-tier button{font-size:11px;padding:6px}.bp-tier button:disabled{opacity:.5}
+  /* Lobby modernisé : grande zone de jeu, profil et navigation des passes */
+  #lobby .lobby{width:min(1180px,100%);gap:18px}
+  #lobby .lhead{padding:18px 20px;border:1px solid #53636b;background:linear-gradient(110deg,rgba(17,29,35,.98),rgba(33,48,55,.88) 58%,rgba(88,58,35,.65));box-shadow:0 12px 34px #0006;align-items:center}
+  #lobby .lhead h2{font-size:clamp(42px,7vw,68px);text-shadow:0 5px 18px #0009}
+  #lobby .lstats{gap:14px}
+  #lobby .lstats .label{font-size:10px;color:var(--ice)}
+  #lobby .lstats b{font-size:26px}
+  .lobby-hero{position:relative;overflow:hidden;min-height:150px;padding:22px 24px;border:1px solid #77858a;background:radial-gradient(ellipse at 78% 30%,#8d643b55,transparent 34%),linear-gradient(105deg,#18272d 0%,#293b40 52%,#493a2d 100%);display:flex;align-items:center;justify-content:space-between;gap:18px}
+  .lobby-hero:after{content:'☣';position:absolute;right:9%;top:50%;transform:translateY(-55%) rotate(-12deg);font-size:clamp(90px,16vw,170px);font-weight:900;color:#d9a64a18;pointer-events:none}
+  .lobby-hero>div{position:relative;z-index:1;max-width:620px}.lobby-hero h3{margin:0 0 7px;font-size:clamp(25px,4vw,38px);color:var(--bone)}
+  .lobby-hero p{margin:0;color:#d1dcdd;max-width:560px;font-size:13px;line-height:1.55}
+  .lobby-hero .hero-tag{font:600 10px var(--mono);letter-spacing:.18em;color:#e4b85e;margin-bottom:8px}
+  .lobby-hero .hero-mark{position:relative;z-index:1;border:1px solid #d5ad68;background:#d5ad6822;padding:11px 15px;color:#f5d89d;font:600 12px var(--mono);letter-spacing:.12em;white-space:nowrap}
+  #lobby .cols{grid-template-columns:minmax(230px,.78fr) minmax(0,1.35fr);gap:18px}
+  #lobby .cols>section{padding:16px;border:1px solid #46565e;background:linear-gradient(145deg,rgba(25,36,41,.96),rgba(17,24,28,.94));box-shadow:0 8px 24px #0004}
+  #lobby .cols>section>h3{margin:0 0 5px}
+  #lobby .modes{padding:14px;border:1px solid #53636b;background:linear-gradient(90deg,#202d32,#151e22);align-items:center}
+  #lobby #play{min-width:190px;min-height:58px;font-size:25px;letter-spacing:.12em;background:linear-gradient(180deg,#e8bd62,#b77b31);color:#171b1c;border:1px solid #f4d18a;box-shadow:0 5px 0 #69451f,0 10px 24px #0006;text-shadow:none}
+  #lobby #play:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  #lobby .opts .opt{background:linear-gradient(110deg,#24343a,#1a252a);border-left:3px solid #9a7946;padding:12px}
+  #lobby .opts .opt[aria-pressed="true"]{border-color:var(--brass);background:linear-gradient(110deg,#58442666,#24343a)}
+  .pass-hub{border:1px solid #59666b;background:linear-gradient(145deg,#1d292e,#11191d);padding:14px;box-shadow:0 12px 30px #0005}
+  .pass-hub-head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .pass-hub-head h3{margin:0;color:var(--bone)}.pass-hub-head p{margin:4px 0 0;color:var(--muted);font-size:11px}
+  .pass-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+  .pass-tab{min-height:54px;border:1px solid #52636a;background:#202d33;color:var(--bone);padding:8px 10px;text-align:left;font:600 12px var(--mono);letter-spacing:.04em}
+  .pass-tab small{display:block;color:#aab8bc;font:10px var(--mono);margin-top:4px}
+  .pass-tab[aria-selected="true"]{border-color:var(--brass);background:linear-gradient(120deg,#71552b55,#29363b);box-shadow:inset 0 -3px var(--brass)}
+  .pass-panel[hidden]{display:none!important}.pass-panel{padding:12px;border:1px solid #3c4b51;background:#111a1e}
+  .pass-panel .bp-grid{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));max-height:520px;overflow:auto;padding-right:4px}
+  .pass-panel .bp-tier{min-height:120px}.chance-pass{padding:12px;border:1px solid #3c4b51;background:#111a1e}
+  .chance-pass.ranked{border-top:2px solid #ff5368}.chance-pass.unranked{border-top:2px solid #54c8ff}
+  @media(max-width:760px){#lobby .cols{grid-template-columns:1fr}.lobby-hero{min-height:125px;padding:16px}.lobby-hero .hero-mark{display:none}.pass-tabs{grid-template-columns:1fr}.pass-tab{min-height:46px}.pass-panel .bp-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-height:460px}}
   .challenge-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--steel)}
   .challenge-row>div{flex:1;min-width:0}.challenge-row b{display:block}.challenge-row small{display:block;color:var(--muted);margin:3px 0 6px}.challenge-row strong{font-size:10px;letter-spacing:.08em;color:var(--brass);white-space:nowrap}
 </style>
@@ -345,6 +378,10 @@
         <div><div class="tag">Salon · Bastion 9</div><h2>Zone Morte</h2></div>
         <div class="lstats" id="lstats"></div>
         <div id="auser" hidden><span>Connecté : <b id="aname"></b></span><button type="button" class="sec" id="alogout">Se déconnecter</button></div>
+      </div>
+      <div class="lobby-hero">
+        <div><div class="hero-tag">BASTION 9 · CENTRE DE COMMANDEMENT</div><h3>Prêt à survivre ?</h3><p>Prépare ton équipement, retrouve ton escouade et lance une opération. Chaque partie te fait progresser dans les passes et débloquer de nouvelles récompenses.</p></div>
+        <div class="hero-mark">☣ ZONE DE COMBAT</div>
       </div>
       <div class="cols">
         <section>
@@ -592,7 +629,10 @@
   const CHANCE_PASS_REWARDS = Array.from({length:30},(_,i)=>({tier:i+1,xp:(i+1)%5===0?100:50,title:CHANCE_PASS_TITLES[i]}));
   function unlockChancePass(kind){ if(!['unranked','ranked'].includes(kind)||SAVE.battlePass.chanceUnlocked[kind]||SAVE.battlePass.chanceTokens[kind]<1)return; SAVE.battlePass.chanceTokens[kind]=0; SAVE.battlePass.chanceUnlocked[kind]=true; persist(); renderLobby(); toast(kind==='ranked'?'Pass Chance Classé débloqué !':'Pass Chance Non classé débloqué !'); }
   function claimChancePassTier(kind,tier){ if(!['unranked','ranked'].includes(kind)||!SAVE.battlePass.chanceUnlocked[kind])return; const r=CHANCE_PASS_REWARDS.find(x=>x.tier===tier), claimed=SAVE.battlePass.chanceClaimed[kind]; if(!r||battlePassLevel()<tier||claimed.includes(tier))return; claimed.push(tier); SAVE.xp+=r.xp; SAVE.battlePass.titles.push(r.title+' · '+(kind==='ranked'?'Classé':'Non classé')); persist(); renderLobby(); toast('Pass Chance · palier '+tier+' récupéré · +'+r.xp+' XP compte'); }
-  function renderChancePass(){ const host=$('chancePassPanel'); if(!host)return; const mk=(kind,label)=>{const unlocked=SAVE.battlePass.chanceUnlocked[kind],token=SAVE.battlePass.chanceTokens[kind],claimed=SAVE.battlePass.chanceClaimed[kind]; return '<section class="chance-pass '+kind+'"><div class="bp-head"><div><h3>PASS CHANCE '+label.toUpperCase()+'</h3><small>'+(unlocked?'Accès débloqué · XP du pass':'Jeton rare requis · 1 % par coffre')+'</small></div><b>'+(unlocked?'DÉBLOQUÉ':token?'JETON TROUVÉ':'VERROUILLÉ')+'</b></div>'+(unlocked?'<div class="bp-grid">'+CHANCE_PASS_REWARDS.map(r=>{const done=claimed.includes(r.tier),open=battlePassLevel()>=r.tier;return '<div class="bp-tier '+(open?'unlocked ':'')+(done?'claimed':'')+'"><b>PALIER '+r.tier+'</b><strong>+'+r.xp+' XP compte</strong><small>'+r.title+'</small><button type="button" class="small" data-chance-claim="'+kind+'" data-tier="'+r.tier+'" '+(!open||done?'disabled':'')+'>'+(done?'RÉCUPÉRÉ':open?'RÉCUPÉRER':'VERROUILLÉ · '+(r.tier*100)+' XP')+'</button></div>';}).join('')+'</div>':'<p class="note">'+(token?'Tu possèdes le jeton correspondant.':'Trouve le jeton '+(kind==='ranked'?'rouge classé':'bleu non classé')+' dans un coffre.')+'</p><button type="button" class="small" data-chance-unlock="'+kind+'" '+(!token?'disabled':'')+'>UTILISER LE JETON</button>')+'</section>';}; host.innerHTML='<div class="bp-head"><div><h3>PASS CHANCE · ACCÈS PAR JETON</h3><small>Deux parcours séparés · chaque jeton a 1 % de chance d’apparaître dans un coffre</small></div></div>'+mk('unranked','Non classé')+mk('ranked','Classé'); }
+  let ACTIVE_PASS_TAB='free';
+  function applyPassTab(){ const free=$('battlePassPanel'),chance=$('chancePassPanel'); if(free)free.hidden=ACTIVE_PASS_TAB!=='free'; if(chance)chance.hidden=ACTIVE_PASS_TAB==='free'; document.querySelectorAll('[data-pass-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.passTab===ACTIVE_PASS_TAB))); }
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-pass-tab]');if(!b)return;ACTIVE_PASS_TAB=b.dataset.passTab;renderChancePass();applyPassTab();});
+  function renderChancePass(){ const host=$('chancePassPanel'); if(!host)return; const kind=ACTIVE_PASS_TAB==='ranked'?'ranked':'unranked',label=kind==='ranked'?'Classé':'Non classé',unlocked=SAVE.battlePass.chanceUnlocked[kind],token=SAVE.battlePass.chanceTokens[kind],claimed=SAVE.battlePass.chanceClaimed[kind]; host.innerHTML='<section class="chance-pass '+kind+'"><div class="bp-head"><div><h3>PASS CHANCE '+label.toUpperCase()+'</h3><small>30 paliers · progression XP du pass · jeton dédié avec 1 % de chance par coffre</small></div><b>'+(unlocked?'DÉBLOQUÉ':token?'JETON TROUVÉ':'VERROUILLÉ')+'</b></div>'+(unlocked?'<div class="bp-grid">'+CHANCE_PASS_REWARDS.map(r=>{const done=claimed.includes(r.tier),open=battlePassLevel()>=r.tier;return '<div class="bp-tier '+(open?'unlocked ':'')+(done?'claimed':'')+'"><b>PALIER '+r.tier+'</b><strong>+'+r.xp+' XP compte</strong><small>'+r.title+'</small><button type="button" class="small" data-chance-claim="'+kind+'" data-tier="'+r.tier+'" '+(!open||done?'disabled':'')+'>'+(done?'RÉCUPÉRÉ':open?'RÉCUPÉRER':'VERROUILLÉ · '+(r.tier*100)+' XP')+'</button></div>';}).join('')+'</div>':'<p class="note">'+(token?'Tu possèdes le jeton correspondant.':'Trouve le jeton '+(kind==='ranked'?'rouge classé':'bleu non classé')+' dans un coffre.')+'</p><button type="button" class="small" data-chance-unlock="'+kind+'" '+(!token?'disabled':'')+'>UTILISER LE JETON</button>')+'</section>'; }
   function renderBattlePass(){
     const host=$('battlePassPanel'); if(!host)return;
     const level=battlePassLevel(), xp=SAVE.battlePass.xp||0, next=Math.min(3000,level*100), current=xp-next+100;
@@ -2549,8 +2589,8 @@
     $('progressCard').innerHTML='<div class="row"><b>NIVEAU '+lvl+'</b><span>'+s.xp+' / '+nextXp+' XP</span></div><div class="progress-track"><i style="width:'+progress.toFixed(1)+'%"></i></div><small>Prochaine récompense : '+(lvl<3?'skin Désert':lvl<4?'skin Cobalt':lvl<6?'skin Forêt':lvl<8?'skin Toxique':lvl<10?'skin Opérateur Élite':lvl<12?'skin Or':'progression continue')+'</small>';
     if (!$('challengePanel')) $('progressCard').insertAdjacentHTML('afterend','<div class="social-box" id="challengePanel"></div>');
     renderChallenges();
-    if (!$('chancePassPanel')) $('challengePanel').insertAdjacentHTML('afterend','<div class="social-box" id="chancePassPanel"></div><div class="social-box" id="battlePassPanel"></div>');
-    renderChancePass(); renderBattlePass();
+    if (!$('passHub')) $('challengePanel').insertAdjacentHTML('afterend','<section class="pass-hub" id="passHub"><div class="pass-hub-head"><div><h3>Centre des passes</h3><p>Trois parcours séparés · choisis ta progression et récupère tes récompenses</p></div><b class="note">SAISON 1 · 30 PALIERS</b></div><div class="pass-tabs" role="tablist" aria-label="Parcours de récompenses"><button type="button" class="pass-tab" data-pass-tab="free" role="tab" aria-selected="true">PASS GRATUIT<small>Accessible à tous</small></button><button type="button" class="pass-tab" data-pass-tab="unranked" role="tab" aria-selected="false">PASS CHANCE · NON CLASSÉ<small>Jeton bleu · 1 % par coffre</small></button><button type="button" class="pass-tab" data-pass-tab="ranked" role="tab" aria-selected="false">PASS CHANCE · CLASSÉ<small>Jeton rouge · 1 % par coffre</small></button></div><div class="pass-panel" id="battlePassPanel" role="tabpanel"></div><div class="pass-panel" id="chancePassPanel" role="tabpanel" hidden></div></section>');
+    renderChancePass(); renderBattlePass(); applyPassTab();
     $('armory').innerHTML = WEAPON_IDS.filter(k => s.weapons[k] || s.unlocked[k]).map(k => {
       const w = WP[k], n = s.weapons[k] || 0;
       return '<div class=\"wcard\">' + weaponSvg(k) + '<div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class=\"cnt\">' + (s.unlocked[k] ? 'Débloquée' : 'Récoltée ×' + n) + '</div></div>';
