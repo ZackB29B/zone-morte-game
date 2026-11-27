@@ -10,6 +10,14 @@ const MINP = 2;            // joueurs min pour lancer
 const START_IN = 5;        // compte à rebours client (secondes)
 const WEAPONS = new Set(["pistol", "pistol_mk2", "pistol_heavy", "pistol_silenced", "smg_vector", "smg_mp5", "rifle", "rifle_burst", "rifle_scar", "rifle_aug", "rifle_lmg", "shotgun", "shotgun_auto", "shotgun_slug", "shotgun_tactical", "sniper", "sniper_heavy", "dmr_scout", "sniper_dragunov"]);
 const LOOT = new Set(["ammo", "med", "armor", "grenade", "incend", "flash", "smoke", "pistol", "pistol_mk2", "pistol_heavy", "pistol_silenced", "smg_vector", "smg_mp5", "rifle", "rifle_burst", "rifle_scar", "rifle_aug", "rifle_lmg", "shotgun", "shotgun_auto", "shotgun_slug", "shotgun_tactical", "sniper", "sniper_heavy", "dmr_scout", "sniper_dragunov"]);
+// Valeurs de référence serveur : elles empêchent un client de choisir librement ses dégâts.
+const WEAPON_RULES = {
+  pistol:[24,.30], pistol_mk2:[31,.36], pistol_heavy:[48,.55], pistol_silenced:[27,.25],
+  smg_vector:[9,.055], smg_mp5:[12,.075], rifle:[13,.095], rifle_burst:[19,.16],
+  rifle_scar:[17,.11], rifle_aug:[18,.105], rifle_lmg:[11,.065], shotgun:[10,.85],
+  shotgun_auto:[7,.48], shotgun_slug:[62,.95], shotgun_tactical:[8,.62], sniper:[85,1.25],
+  sniper_heavy:[90,1.8], dmr_scout:[68,.72], sniper_dragunov:[82,.82]
+};
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const MODES = new Set(["br", "squad", "duel", "train"]);
 const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -91,7 +99,7 @@ module.exports = function attachOnline(io, opts = {}) {
     const m = { id, room: "m:" + id, over: false, seed: crypto.randomInt(1, 2147483646), players: new Map() };
     for (const s of list) {
       s.data.match = id; s.join(m.room);
-      m.players.set(s.id, { id: s.id, name: s.data.name, alive: true, left: false, x: null, y: null, hb: { t: Date.now(), n: 40 } });
+      m.players.set(s.id, { id: s.id, name: s.data.name, alive: true, left: false, x: null, y: null, hb: { t: Date.now(), n: 40 }, lastWeaponHit: Object.create(null) });
     }
     matches.set(id, m);
     const players = [...m.players.values()].map(p => ({ id: p.id, name: p.name }));
@@ -238,10 +246,24 @@ module.exports = function attachOnline(io, opts = {}) {
       if (!me || !tg || !me.alive || !tg.alive || tg === me) return;
       const t = Date.now(); me.hb.n = Math.min(40, me.hb.n + (t - me.hb.t) * .04); me.hb.t = t; if (me.hb.n < 1) return; me.hb.n--;
       const knife = p.k === 1;
-      let d = num(p.d, .1, 1000); if (d === null) return;
       const dist = me.x === null || tg.x === null ? 0 : Math.hypot(me.x - tg.x, me.y - tg.y);
-      if (knife) { if (dist > 140) return; d = 999; }
-      else { d = Math.min(d, 160); if (dist > 950) return; }
+      let d;
+      if (knife) {
+        if (dist > 140) return;
+        d = 999;
+      } else {
+        const rule = WEAPON_RULES[p.w];
+        d = num(p.d, .1, 1000);
+        if (!rule || d === null || d > rule[0] * 1.15 || dist > 950) return;
+        // Tolérance réseau, mais cadence contrôlée par le serveur. Les plombs d'un
+        // même tir de fusil à pompe restent autorisés à toucher plusieurs fois.
+        if (!p.w.startsWith("shotgun")) {
+          const now = Date.now(), minGap = rule[1] * 700;
+          const last = me.lastWeaponHit[p.w] || 0;
+          if (now - last < minGap) return;
+          me.lastWeaponHit[p.w] = now;
+        }
+      }
       io.to(tg.id).emit("hit", { f: me.id, d, k: knife ? 1 : 0 });
     });
     socket.on("dead", p => {
