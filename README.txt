@@ -1,4 +1,4 @@
-ZONE MORTE + SUPABASE
+ZONE MORTE + SUPABASE · PASSE 38
 
 FICHIERS
 - server.js : serveur Express/Socket.IO et connexion Supabase côté serveur
@@ -33,3 +33,19 @@ Sans variables Supabase, le serveur utilise encore data/users.json en local.
 Sur Render, ce stockage local n'est pas garanti sans disque persistant.
 Les comptes existants dans un ancien users.json ne sont pas copiés automatiquement :
 il faut effectuer une migration séparée avant de supprimer l'ancien disque.
+
+
+PASSE 38 · MOTEUR 3D SOLO COMMUN
+- Le bouton JOUER lance désormais le moteur WebGL pour tous les modes solo.
+- Survie zombie : vagues d'infectés, boss, butin et cinématique d'insertion.
+- Entraînement : cibles de tir, sans ennemis hostiles.
+- Battle royale, escouade, duel et classé hors ligne : combattants hostiles contrôlés par l'IA,
+  dégâts à distance, élimination de la menace et victoire de secteur.
+- Les commandes clavier/tactiles, les armes et les skins d'opérateur restent accessibles.
+
+LIMITES CONNUES DE CETTE PASSE
+- Le multijoueur en ligne utilise encore l'ancien moteur 2D et son protocole réseau.
+- Les modes 3D hors survie sont une première adaptation solo : les bots tirent à distance
+  via une logique simplifiée, et ne reproduisent pas encore toutes les mécaniques BR historiques.
+- La progression/récompense des parties 3D n'est pas encore reliée au système XP/résultats
+  historique. Cette intégration reste une étape séparée à réaliser et tester.
