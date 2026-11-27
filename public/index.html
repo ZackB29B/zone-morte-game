@@ -143,6 +143,13 @@
   .lhead { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
   .lstats { display: flex; gap: 22px; flex-wrap: wrap; text-transform: uppercase; }
   .lstats b { display: block; font-family: var(--display); font-size: 32px; line-height: 1; font-weight: 600; color: var(--bone); font-variant-numeric: tabular-nums; }
+  .progress-card { border:1px solid var(--brass); padding:12px 14px; background:rgba(26,31,34,.72); display:grid; gap:8px; }
+  .progress-track { height:9px; background:var(--iron); border:1px solid var(--steel); overflow:hidden; }
+  .progress-track i { display:block; height:100%; background:var(--brass); width:0; }
+  .cosmetic-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
+  .cosmetic { border:1px solid var(--steel); padding:10px; background:rgba(26,31,34,.6); display:grid; gap:6px; }
+  .cosmetic button { font-size:17px; padding:5px 10px; }
+  .skin-swatch { width:100%; height:12px; border:1px solid #667; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
   .cols > section { min-width: 0; display: grid; gap: 10px; align-content: start; }
   .armory { display: grid; gap: 10px; }
@@ -238,6 +245,15 @@
   @keyframes kcEnter { from { opacity:0; transform:scale(1.015); } to { opacity:1; transform:scale(1); } }
   @media (max-width:640px) { #killcam { padding:10px; } #killcam .kc-head { letter-spacing:.08em; } #killcam .kc-foot span { padding:6px 8px; } }
 
+
+  .bp-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .bp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:10px}
+  .bp-tier{border:1px solid var(--steel);background:rgba(26,31,34,.72);padding:10px;display:grid;gap:6px;min-height:112px}
+  .bp-tier.unlocked{border-color:var(--brass)}.bp-tier.claimed{opacity:.72}
+  .bp-tier b{color:var(--brass);letter-spacing:.08em}.bp-tier small{color:var(--muted)}
+  .bp-tier button{font-size:11px;padding:6px}.bp-tier button:disabled{opacity:.5}
+  .challenge-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--steel)}
+  .challenge-row>div{flex:1;min-width:0}.challenge-row b{display:block}.challenge-row small{display:block;color:var(--muted);margin:3px 0 6px}.challenge-row strong{font-size:10px;letter-spacing:.08em;color:var(--brass);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -383,7 +399,8 @@
             <p class="note" id="nstat">Connexion au serveur…</p>
             <label class="label" for="nname">Pseudo en ligne</label>
             <input class="in" id="nname" maxlength="16" autocomplete="nickname" placeholder="Ton pseudo">
-            <button type="button" class="opt" id="nfind"><b>Rechercher une partie</b><span>Bataille royale en ligne : les joueurs en recherche sont regroupés, la partie démarre quand il y en a assez.</span></button>
+            <button type="button" class="opt" id="nfind"><b>Rechercher une partie</b><span>Bataille royale en ligne : recherche classique.</span></button>
+            <button type="button" class="opt" id="nfindranked"><b>Matchmaking classé</b><span>Recherche des joueurs proches de ta cote. Le compte doit être connecté.</span></button>
             <div id="nsearch" hidden class="opts"><p class="note" id="nsn"></p><button type="button" class="sec small" id="ncancel">Annuler la recherche</button></div>
             <div class="label">Jouer entre amis</div>
             <div class="joinrow"><input class="in" id="ncode" maxlength="6" placeholder="CODE DU SALON" autocomplete="off" style="text-transform:uppercase"><button type="button" class="sec small" id="njoin">Rejoindre</button></div>
@@ -444,6 +461,8 @@
   const PH0 = [1550, 960, 560, 300, 120, 0];
   let PH = PH0.slice();          // rayons successifs de la zone
   const ZDMG = [1.5, 3, 5, 8, 12, 20];             // dégâts par seconde hors zone
+  const ZWAIT = [35, 30, 25, 20, 15, 10];          // attente avant chaque contraction
+  const ZDUR = [30, 26, 22, 18, 14, 11];           // contractions de plus en plus rapides
   const WP = {
     pistol:       { n: 'Pistolet M9',       type: 'pistol',  dmg: 24, rate: .30, mag: 12, spd: 820, spread: .02, pel: 1, rng: 560, rel: 1.0, col: '#f0dc9a' },
     pistol_mk2:   { n: 'Pistolet MK2',      type: 'pistol',  dmg: 31, rate: .36, mag: 15, spd: 850, spread: .018, pel: 1, rng: 590, rel: 1.1, col: '#f0dc9a' },
@@ -476,7 +495,9 @@
     br:    { n: 'Battle royale', ent: 25, zs: 1,   desc: '25 combattants, grande zone qui se referme.' },
     squad: { n: 'Escouade rapide', ent: 12, zs: .65, desc: '12 combattants, carte réduite, partie courte.' },
     duel:  { n: 'Duel', ent: 2, zs: .35, desc: 'Toi contre un seul ennemi, petite zone.' },
-    train: { n: 'Entraînement', ent: 6, zs: 1, noZone: true, desc: '6 bots, sans zone, pour apprendre la carte.' }
+    train: { n: 'Entraînement', ent: 6, zs: 1, noZone: true, desc: '6 bots, sans zone, pour apprendre la carte.' },
+    ranked: { n: 'Classé', ent: 16, zs: 1, desc: 'Parties compétitives : +25 points en victoire, −15 en défaite. Compte requis.' },
+    zombie: { n: 'Survie zombie', ent: 7, zs: .62, noZone: true, desc: 'Survis aux vagues de morts-vivants. Les vagues deviennent plus difficiles.' }
   };
   const DIFF = [
     { n: 'Recrue',     desc: 'Tirent très mal et réagissent lentement. Armés de pistolets.', err: .32, turn: 2.2, dmg: .35, spd: 125, view: 380, spread: 2.2, hp: 70,  cd: 1.8, cone: 1.0,  hear: 140, ar: 0,   react: 1.6,  wk: [1, 0, 0] },
@@ -487,9 +508,28 @@
     { n: 'Ghost',      desc: 'Presque aucune erreur, vision large, entendent tout.', err: .015, turn: 8.5, dmg: 1.2, spd: 182, view: 680, spread: .6, hp: 150, cd: .8, cone: 1.8, hear: 400, ar: 100, react: .65,  wk: [0, 3, 2] }
   ];
   const SAVE_KEY = 'zonemorte.v1';
-  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0 };
+  const SAVE = { weapons: { pistol: 1 }, unlocked: { pistol: true }, loadout: 'pistol', loadoutSlots: ['pistol'], xp: 0, lastXp: 0, games: 0, wins: 0, kills: 0, mode: 'br', diff: 1, online: false, map: 0, characterSkin:'standard', weaponSkin:'standard', weaponAttachments:{}, challengeState:{ dailyKey:'', weeklyKey:'', daily:{}, weekly:{} }, battlePass:{ season:'S1-2026', xp:0, claimed:[], titles:[], cosmetics:[], chanceTokens:{unranked:0,ranked:0}, chanceUnlocked:{unranked:false,ranked:false}, chanceClaimed:{unranked:[],ranked:[]} } };
   try { const r = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (r && typeof r === 'object') Object.assign(SAVE, r); } catch (_) {}
   if (!SAVE.weapons || typeof SAVE.weapons !== 'object') SAVE.weapons = { pistol: 1 };
+  if (!SAVE.weaponAttachments || typeof SAVE.weaponAttachments !== 'object') SAVE.weaponAttachments = {};
+  const ATTACHMENTS = [
+    {id:'optic',name:'Viseur point rouge',desc:'Réduit la dispersion de 18 %',cost:120},
+    {id:'suppressor',name:'Silencieux',desc:'Réduit légèrement la dispersion et le recul visuel',cost:150},
+    {id:'extended',name:'Chargeur étendu',desc:'Augmente la capacité du chargeur de 25 %',cost:180},
+    {id:'grip',name:'Poignée ergonomique',desc:'Réduit la dispersion de 22 %',cost:160},
+    {id:'quickmag',name:'Chargeur rapide',desc:'Réduit le temps de rechargement de 20 %',cost:170}
+  ];
+  const weaponAttachments = k => Array.isArray(SAVE.weaponAttachments[k]) ? SAVE.weaponAttachments[k] : [];
+  function weaponStats(k) {
+    const base=WP[k], a=weaponAttachments(k); if (!base) return base;
+    const w={...base};
+    if (a.includes('optic')) w.spread*=.82;
+    if (a.includes('suppressor')) w.spread*=.94;
+    if (a.includes('grip')) w.spread*=.78;
+    if (a.includes('extended')) w.mag=Math.ceil(w.mag*1.25);
+    if (a.includes('quickmag')) w.rel*=.8;
+    return w;
+  }
   if (!SAVE.unlocked || typeof SAVE.unlocked !== 'object') SAVE.unlocked = { pistol: true };
   SAVE.unlocked.pistol = true;
   if (!WP[SAVE.loadout] || !SAVE.unlocked[SAVE.loadout]) SAVE.loadout = 'pistol';
@@ -498,8 +538,26 @@
   SAVE.loadoutSlots = SAVE.loadoutSlots.slice(0, 6);
   if (!SAVE.loadoutSlots.includes(SAVE.loadout)) SAVE.loadout = SAVE.loadoutSlots[0] || 'pistol';
   SAVE.xp = Math.max(0, Number(SAVE.xp) || 0);
+  if (!SAVE.battlePass || typeof SAVE.battlePass !== 'object') SAVE.battlePass={season:'S1-2026',xp:0,claimed:[],titles:[],cosmetics:[]};
+  SAVE.battlePass.season='S1-2026';
+  SAVE.battlePass.xp=Math.max(0,Math.floor(Number(SAVE.battlePass.xp)||0));
+  SAVE.battlePass.claimed=Array.isArray(SAVE.battlePass.claimed)?[...new Set(SAVE.battlePass.claimed.filter(n=>Number.isInteger(n)&&n>=1&&n<=30))]:[];
+  SAVE.battlePass.titles=Array.isArray(SAVE.battlePass.titles)?[...new Set(SAVE.battlePass.titles.filter(x=>typeof x==='string').slice(0,30))]:[];
+  const BP_COSMETIC_IDS=['bp_urban','bp_retrovirus','bp_hazmat','bp_cryo','bp_shadow','bp_apocalypse'];
+  SAVE.battlePass.cosmetics=Array.isArray(SAVE.battlePass.cosmetics)?[...new Set(SAVE.battlePass.cosmetics.filter(x=>BP_COSMETIC_IDS.includes(x)))]:[];
+  SAVE.battlePass.chanceTokens = SAVE.battlePass.chanceTokens && typeof SAVE.battlePass.chanceTokens==='object' ? {unranked:Math.min(1,Math.max(0,Number(SAVE.battlePass.chanceTokens.unranked)||0)),ranked:Math.min(1,Math.max(0,Number(SAVE.battlePass.chanceTokens.ranked)||0))} : {unranked:0,ranked:0};
+  SAVE.battlePass.chanceUnlocked = SAVE.battlePass.chanceUnlocked && typeof SAVE.battlePass.chanceUnlocked==='object' ? {unranked:!!SAVE.battlePass.chanceUnlocked.unranked,ranked:!!SAVE.battlePass.chanceUnlocked.ranked} : {unranked:false,ranked:false};
+  SAVE.battlePass.chanceClaimed = SAVE.battlePass.chanceClaimed && typeof SAVE.battlePass.chanceClaimed==='object' ? {unranked:[...new Set((SAVE.battlePass.chanceClaimed.unranked||[]).filter(n=>Number.isInteger(n)&&n>=1&&n<=30))],ranked:[...new Set((SAVE.battlePass.chanceClaimed.ranked||[]).filter(n=>Number.isInteger(n)&&n>=1&&n<=30))]} : {unranked:[],ranked:[]};
+  const CHARACTER_SKINS = [{id:'standard',name:'Éclaireur',level:1,color:'#6fc3d9'},{id:'desert',name:'Désert',level:3,color:'#c69b62'},{id:'forest',name:'Forêt',level:6,color:'#6f9b58'},{id:'elite',name:'Opérateur Élite',level:10,color:'#a35bd6'},{id:'bp_urban',name:'Urbain · Pass S1',pass:true,color:'#87939b'},{id:'bp_hazmat',name:'Combinaison Hazmat · Pass S1',pass:true,color:'#b7c83d'},{id:'bp_shadow',name:'Ombre · Pass S1',pass:true,color:'#554b72'}];
+  const WEAPON_SKINS = [{id:'standard',name:'Acier',level:1,color:'#b9b8ad'},{id:'cobalt',name:'Cobalt',level:4,color:'#5599e8'},{id:'toxic',name:'Toxique',level:8,color:'#79b94e'},{id:'gold',name:'Or',level:12,color:'#d4a537'},{id:'bp_retrovirus',name:'Rétrovirus · Pass S1',pass:true,color:'#42c9a5'},{id:'bp_cryo',name:'Cryo · Pass S1',pass:true,color:'#65bce8'},{id:'bp_apocalypse',name:'Apocalypse · Pass S1',pass:true,color:'#e35a37'}];
+  const levelFromXp = xp => Math.max(1, Math.floor(Math.sqrt(Math.max(0,xp)/250))+1);
+  const levelFloorXp = level => (level-1)*(level-1)*250;
+  const playerLevel = () => levelFromXp(SAVE.xp);
+  const skinUnlocked = (list,id) => { const skin=list.find(x=>x.id===id); return !!skin && (skin.pass ? SAVE.battlePass.cosmetics.includes(id) : playerLevel()>=skin.level); };
+  if (!skinUnlocked(CHARACTER_SKINS,SAVE.characterSkin)) SAVE.characterSkin='standard';
+  if (!skinUnlocked(WEAPON_SKINS,SAVE.weaponSkin)) SAVE.weaponSkin='standard';
   if (!MODES[SAVE.mode]) SAVE.mode = 'br';
-  SAVE.map = Number.isInteger(Number(SAVE.map)) ? Math.max(0, Math.min(5, Number(SAVE.map))) : 0;
+  SAVE.map = Number.isInteger(Number(SAVE.map)) ? Math.max(0, Math.min(10, Number(SAVE.map))) : 0;
   if (!(SAVE.diff >= 0 && SAVE.diff < DIFF.length)) SAVE.diff = 1;
   async function persist() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (_) {}
@@ -509,11 +567,81 @@
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ weapons: SAVE.weapons, unlocked: SAVE.unlocked, loadout: SAVE.loadout, loadoutSlots: SAVE.loadoutSlots, xp: SAVE.xp, games: SAVE.games, wins: SAVE.wins, kills: SAVE.kills })
+          body: JSON.stringify({ weapons: SAVE.weapons, unlocked: SAVE.unlocked, loadout: SAVE.loadout, loadoutSlots: SAVE.loadoutSlots, xp: SAVE.xp, games: SAVE.games, wins: SAVE.wins, kills: SAVE.kills, characterSkin: SAVE.characterSkin, weaponSkin: SAVE.weaponSkin, weaponAttachments: SAVE.weaponAttachments, battlePass: SAVE.battlePass })
         });
       } catch (_) {}
     }
   }
+  const BP_TIER_COSMETICS={5:{id:'bp_urban',type:'personnage',name:'Urbain'},10:{id:'bp_retrovirus',type:'arme',name:'Rétrovirus'},15:{id:'bp_hazmat',type:'personnage',name:'Combinaison Hazmat'},20:{id:'bp_cryo',type:'arme',name:'Cryo'},25:{id:'bp_shadow',type:'personnage',name:'Ombre'},30:{id:'bp_apocalypse',type:'arme',name:'Apocalypse · Légendaire'}};
+  const BATTLE_PASS_REWARDS = Array.from({length:30},(_,i)=>({tier:i+1, xp:(i+1)%5===0?100:50, title:(i+1)%5===0?['Recrue','Pisteur','Survivant','Chasseur','Légende','Inflexible'][Math.floor(i/5)]+' · S1':null, cosmetic:BP_TIER_COSMETICS[i+1]||null}));
+  function battlePassLevel(){return Math.min(30,Math.floor((SAVE.battlePass.xp||0)/100));}
+  function addBattlePassXp(amount){
+    const n=Math.max(0,Math.floor(Number(amount)||0)); if(!n)return;
+    const before=battlePassLevel(); SAVE.battlePass.xp=Math.min(3000,(SAVE.battlePass.xp||0)+n);
+    const after=battlePassLevel(); if(after>before) toast('Passe de combat · Niveau '+after+' atteint !');
+    persist(); if(typeof renderChancePass==='function')renderChancePass(); if(typeof renderBattlePass==='function')renderBattlePass();
+  }
+  function claimBattlePassTier(tier){
+    const reward=BATTLE_PASS_REWARDS.find(x=>x.tier===tier); if(!reward||battlePassLevel()<tier||SAVE.battlePass.claimed.includes(tier))return;
+    SAVE.battlePass.claimed.push(tier); SAVE.xp+=reward.xp;
+    if(reward.title) SAVE.battlePass.titles.push(reward.title);
+    if(reward.cosmetic && !SAVE.battlePass.cosmetics.includes(reward.cosmetic.id)) SAVE.battlePass.cosmetics.push(reward.cosmetic.id);
+    persist(); renderLobby(); toast('Palier '+tier+' récupéré · +'+reward.xp+' XP'+(reward.title?' · Titre débloqué':'')+(reward.cosmetic?' · Skin '+reward.cosmetic.name+' débloqué':''));
+  }
+  const CHANCE_PASS_TITLES = ['Chanceux','Fouille-coffre','Pilleur','Collectionneur','Survivant doré','Chasseur de jetons','Fortune noire','Maître du butin','Élite du hasard','Trésor vivant','Explorateur','Pisteur de reliques','Fouilleur expert','Gardien du coffre','Prospecteur','Chasseur de fortune','Roi du butin','Pilleur légendaire','Maître des trouvailles','Chance incarnée','Éclaireur doré','Collectionneur royal','Traqueur de trésors','Survivant chanceux','Seigneur du butin','Expert des coffres','Héritier des ruines','Fortune éternelle','Légende du hasard','Trésor ultime'];
+  const CHANCE_PASS_REWARDS = Array.from({length:30},(_,i)=>({tier:i+1,xp:(i+1)%5===0?100:50,title:CHANCE_PASS_TITLES[i]}));
+  function unlockChancePass(kind){ if(!['unranked','ranked'].includes(kind)||SAVE.battlePass.chanceUnlocked[kind]||SAVE.battlePass.chanceTokens[kind]<1)return; SAVE.battlePass.chanceTokens[kind]=0; SAVE.battlePass.chanceUnlocked[kind]=true; persist(); renderLobby(); toast(kind==='ranked'?'Pass Chance Classé débloqué !':'Pass Chance Non classé débloqué !'); }
+  function claimChancePassTier(kind,tier){ if(!['unranked','ranked'].includes(kind)||!SAVE.battlePass.chanceUnlocked[kind])return; const r=CHANCE_PASS_REWARDS.find(x=>x.tier===tier), claimed=SAVE.battlePass.chanceClaimed[kind]; if(!r||battlePassLevel()<tier||claimed.includes(tier))return; claimed.push(tier); SAVE.xp+=r.xp; SAVE.battlePass.titles.push(r.title+' · '+(kind==='ranked'?'Classé':'Non classé')); persist(); renderLobby(); toast('Pass Chance · palier '+tier+' récupéré · +'+r.xp+' XP compte'); }
+  function renderChancePass(){ const host=$('chancePassPanel'); if(!host)return; const mk=(kind,label)=>{const unlocked=SAVE.battlePass.chanceUnlocked[kind],token=SAVE.battlePass.chanceTokens[kind],claimed=SAVE.battlePass.chanceClaimed[kind]; return '<section class="chance-pass '+kind+'"><div class="bp-head"><div><h3>PASS CHANCE '+label.toUpperCase()+'</h3><small>'+(unlocked?'Accès débloqué · XP du pass':'Jeton rare requis · 1 % par coffre')+'</small></div><b>'+(unlocked?'DÉBLOQUÉ':token?'JETON TROUVÉ':'VERROUILLÉ')+'</b></div>'+(unlocked?'<div class="bp-grid">'+CHANCE_PASS_REWARDS.map(r=>{const done=claimed.includes(r.tier),open=battlePassLevel()>=r.tier;return '<div class="bp-tier '+(open?'unlocked ':'')+(done?'claimed':'')+'"><b>PALIER '+r.tier+'</b><strong>+'+r.xp+' XP compte</strong><small>'+r.title+'</small><button type="button" class="small" data-chance-claim="'+kind+'" data-tier="'+r.tier+'" '+(!open||done?'disabled':'')+'>'+(done?'RÉCUPÉRÉ':open?'RÉCUPÉRER':'VERROUILLÉ · '+(r.tier*100)+' XP')+'</button></div>';}).join('')+'</div>':'<p class="note">'+(token?'Tu possèdes le jeton correspondant.':'Trouve le jeton '+(kind==='ranked'?'rouge classé':'bleu non classé')+' dans un coffre.')+'</p><button type="button" class="small" data-chance-unlock="'+kind+'" '+(!token?'disabled':'')+'>UTILISER LE JETON</button>')+'</section>';}; host.innerHTML='<div class="bp-head"><div><h3>PASS CHANCE · ACCÈS PAR JETON</h3><small>Deux parcours séparés · chaque jeton a 1 % de chance d’apparaître dans un coffre</small></div></div>'+mk('unranked','Non classé')+mk('ranked','Classé'); }
+  function renderBattlePass(){
+    const host=$('battlePassPanel'); if(!host)return;
+    const level=battlePassLevel(), xp=SAVE.battlePass.xp||0, next=Math.min(3000,level*100), current=xp-next+100;
+    host.innerHTML='<div class="bp-head"><div><h3>PASS DE COMBAT GRATUIT · SAISON 1</h3><small>Classé et non classé · aucun achat requis</small></div><b>NIVEAU '+level+' / 30</b></div><div class="progress-track"><i style="width:'+Math.min(100,(xp/3000)*100).toFixed(1)+'%"></i></div><small>'+xp+' / 3000 XP de passe · '+(level>=30?'Passe terminée':Math.max(0,100-(xp%100))+' XP avant le prochain palier')+'</small><div class="bp-grid">'+BATTLE_PASS_REWARDS.map(r=>{const claimed=SAVE.battlePass.claimed.includes(r.tier), unlocked=level>=r.tier;return '<div class="bp-tier '+(unlocked?'unlocked ':'')+(claimed?'claimed':'')+'"><b>PALIER '+r.tier+'</b><strong>+'+r.xp+' XP compte</strong>'+(r.title?'<small>Titre : '+r.title+'</small>':'<small>Récompense gratuite</small>')+(r.cosmetic?'<small>Skin '+r.cosmetic.type+' : '+r.cosmetic.name+'</small>':'')+'<button type="button" class="small" data-bp-claim="'+r.tier+'" '+(!unlocked||claimed?'disabled':'')+'>'+(claimed?'RÉCUPÉRÉ':unlocked?'RÉCUPÉRER':'VERROUILLÉ')+'</button></div>';}).join('')+'</div>';
+  }
+  const DAILY_CHALLENGES = [
+    {id:'d_kills',title:'Éliminer 3 adversaires',metric:'kills',goal:3,reward:50},
+    {id:'d_games',title:'Terminer 2 parties',metric:'games',goal:2,reward:40},
+    {id:'d_win',title:'Remporter 1 partie',metric:'wins',goal:1,reward:60}
+  ];
+  const WEEKLY_CHALLENGES = [
+    {id:'w_kills',title:'Éliminer 15 adversaires',metric:'kills',goal:15,reward:180},
+    {id:'w_games',title:'Terminer 8 parties',metric:'games',goal:8,reward:150},
+    {id:'w_wins',title:'Remporter 3 parties',metric:'wins',goal:3,reward:220}
+  ];
+  function challengePeriods() {
+    const d=new Date(), day=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    const dailyKey=day.getFullYear()+'-'+String(day.getMonth()+1).padStart(2,'0')+'-'+String(day.getDate()).padStart(2,'0');
+    const monday=new Date(day); monday.setDate(day.getDate()-((day.getDay()+6)%7));
+    const weeklyKey=monday.getFullYear()+'-'+String(monday.getMonth()+1).padStart(2,'0')+'-'+String(monday.getDate()).padStart(2,'0');
+    if (!SAVE.challengeState || typeof SAVE.challengeState!=='object') SAVE.challengeState={dailyKey:'',weeklyKey:'',daily:{},weekly:{}};
+    const c=SAVE.challengeState;
+    if(c.dailyKey!==dailyKey){c.dailyKey=dailyKey;c.daily={};}
+    if(c.weeklyKey!==weeklyKey){c.weeklyKey=weeklyKey;c.weekly={};}
+    return c;
+  }
+  function challengeAdvance(metric, amount) {
+    const c=challengePeriods(); let bonus=0;
+    for (const [period,list] of [['daily',DAILY_CHALLENGES],['weekly',WEEKLY_CHALLENGES]]) {
+      for (const def of list) if(def.metric===metric) {
+        const item=c[period][def.id] || {progress:0,claimed:false};
+        if(!item.claimed) {
+          item.progress=Math.min(def.goal,(Number(item.progress)||0)+amount);
+          if(item.progress>=def.goal){item.claimed=true;bonus+=def.reward;}
+          c[period][def.id]=item;
+        }
+      }
+    }
+    if(bonus){SAVE.xp+=bonus;SAVE.lastChallengeXp=bonus;toast('Défi terminé · +'+bonus+' XP');}
+    persist();
+    if(typeof renderChallenges==='function') renderChallenges();
+  }
+  function renderChallenges() {
+    const host=$('challengePanel'); if(!host) return;
+    const c=challengePeriods();
+    const draw=(title,list,period)=>'<section class="shop-category"><h3>'+title+'</h3>'+list.map(def=>{const it=c[period][def.id]||{progress:0,claimed:false};const p=Math.min(def.goal,Number(it.progress)||0);return '<div class="challenge-row"><div><b>'+def.title+'</b><small>'+p+' / '+def.goal+' · Récompense : '+def.reward+' XP</small><div class="progress-track"><i style="width:'+Math.round(p/def.goal*100)+'%"></i></div></div><strong>'+(it.claimed?'RÉCUPÉRÉ':p>=def.goal?'TERMINÉ':'EN COURS')+'</strong></div>';}).join('')+'</section>';
+    host.innerHTML='<h3>Défis & récompenses</h3>'+draw('Quotidiens · renouvelés chaque jour',DAILY_CHALLENGES,'daily')+draw('Hebdomadaires · renouvelés le lundi',WEEKLY_CHALLENGES,'weekly');
+  }
+  challengePeriods();
   async function loadUserData() {
     if (typeof AUTH === 'undefined' || !AUTH.user) return;
     try {
@@ -531,6 +659,10 @@
           if (typeof d.games === 'number') SAVE.games = d.games;
           if (typeof d.wins === 'number') SAVE.wins = d.wins;
           if (typeof d.kills === 'number') SAVE.kills = d.kills;
+          if (typeof d.characterSkin === 'string' && skinUnlocked(CHARACTER_SKINS,d.characterSkin)) SAVE.characterSkin=d.characterSkin;
+          if (typeof d.weaponSkin === 'string' && skinUnlocked(WEAPON_SKINS,d.weaponSkin)) SAVE.weaponSkin=d.weaponSkin;
+          if (d.weaponAttachments && typeof d.weaponAttachments === 'object') SAVE.weaponAttachments=d.weaponAttachments;
+          if (d.battlePass && typeof d.battlePass === 'object') { SAVE.battlePass={season:'S1-2026',xp:Math.max(0,Math.floor(Number(d.battlePass.xp)||0)),claimed:Array.isArray(d.battlePass.claimed)?[...new Set(d.battlePass.claimed.filter(n=>Number.isInteger(n)&&n>=1&&n<=30))]:[],titles:Array.isArray(d.battlePass.titles)?[...new Set(d.battlePass.titles.filter(x=>typeof x==='string').slice(0,30))]:[],cosmetics:Array.isArray(d.battlePass.cosmetics)?[...new Set(d.battlePass.cosmetics.filter(x=>BP_COSMETIC_IDS.includes(x)))]:[],chanceTokens:d.battlePass.chanceTokens&&typeof d.battlePass.chanceTokens==='object'?{unranked:Math.min(1,Math.max(0,Number(d.battlePass.chanceTokens.unranked)||0)),ranked:Math.min(1,Math.max(0,Number(d.battlePass.chanceTokens.ranked)||0))}:{unranked:0,ranked:0},chanceUnlocked:d.battlePass.chanceUnlocked&&typeof d.battlePass.chanceUnlocked==='object'?{unranked:!!d.battlePass.chanceUnlocked.unranked,ranked:!!d.battlePass.chanceUnlocked.ranked}:{unranked:false,ranked:false},chanceClaimed:d.battlePass.chanceClaimed&&typeof d.battlePass.chanceClaimed==='object'?{unranked:[...new Set((d.battlePass.chanceClaimed.unranked||[]).filter(n=>Number.isInteger(n)&&n>=1&&n<=30))],ranked:[...new Set((d.battlePass.chanceClaimed.ranked||[]).filter(n=>Number.isInteger(n)&&n>=1&&n<=30))]}:{unranked:[],ranked:[]}}; }
           try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (_) {}
         }
       }
@@ -754,7 +886,7 @@
     const s = { t: now, ents: new Map(), bl: [], dr: [], pt: [] };
     for (const e of ents) {
       if (!e) continue;
-      s.ents.set(e, { x: e.x, y: e.y, a: e.a || 0, alive: !!e.alive, cur: e.cur, flash: (e.flash || 0) > 0, hp: e.hp, mhp: e.mhp, ar: e.ar || 0, lv: e.lv || 0, bi: e.bi, bot: !!e.bot, rem: !!e.rem, name: e.name, r: e.r || 14 });
+      s.ents.set(e, { x: e.x, y: e.y, a: e.a || 0, alive: !!e.alive, cur: e.cur, flash: (e.flash || 0) > 0, hp: e.hp, mhp: e.mhp, ar: e.ar || 0, lv: e.lv || 0, bi: e.bi, bot: !!e.bot, zombie: !!e.zombie, rem: !!e.rem, name: e.name, r: e.r || 14 });
     }
     for (const b of bullets) s.bl.push({ x: b.x, y: b.y, vx: b.vx, vy: b.vy, col: b.col, lv: b.lv || 0, own: b.own });
     for (let i = 0; i < obs.length; i++) { const o = obs[i]; if (o.door) s.dr.push(i, o.dead ? 2 : o.open ? 1 : 0); }
@@ -875,9 +1007,9 @@
         const metal = wt === 'sniper' ? '#9bb6c8' : wt === 'shotgun' ? '#a77b58' : wt === 'rifle' ? '#8e9a91' : '#b9b8ad';
         c.fillStyle = '#111719'; c.fillRect(5, -3, wt === 'sniper' ? 31 : wt === 'shotgun' ? 27 : 23, 6);
         c.fillStyle = metal; c.fillRect(5, -3.2, wt === 'sniper' ? 25 : wt === 'shotgun' ? 21 : 17, 5.4);
-        c.fillStyle = q.bot ? '#a8443a' : q.rem ? '#9a5ad0' : '#6fc3d9'; c.beginPath(); c.arc(0, 0, q.r, 0, 6.283); c.fill();
+        c.fillStyle = q.zombie ? '#79a84f' : q.bot ? '#a8443a' : q.rem ? '#9a5ad0' : '#6fc3d9'; c.beginPath(); c.arc(0, 0, q.r, 0, 6.283); c.fill();
         c.strokeStyle = '#0c0e0f'; c.lineWidth = 2.5; c.stroke();
-        c.fillStyle = q.bot ? '#2a1210' : q.rem ? '#1d1030' : '#0f2a33'; c.beginPath(); c.arc(3, 0, 6, 0, 6.283); c.fill();
+        c.fillStyle = q.zombie ? '#1b2b13' : q.bot ? '#2a1210' : q.rem ? '#1d1030' : '#0f2a33'; c.beginPath(); c.arc(3, 0, 6, 0, 6.283); c.fill();
         if (q.flash) { c.fillStyle = '#ffe9a8'; c.beginPath(); c.arc(28, 0, 7, 0, 6.283); c.fill(); c.fillStyle = 'rgba(255,200,100,.25)'; c.beginPath(); c.arc(28, 0, 20, 0, 6.283); c.fill(); }
         c.restore();
         if (killedNow) { c.strokeStyle = '#ff4a3d'; c.lineWidth = 3; c.beginPath(); c.moveTo(q.x - 12, q.y - 12); c.lineTo(q.x + 12, q.y + 12); c.moveTo(q.x + 12, q.y - 12); c.lineTo(q.x - 12, q.y + 12); c.stroke(); }
@@ -927,8 +1059,8 @@
   }
   const P = () => ents[0];
   let ONLINE = false;
-  const NET = { sock: null, id: null, name: '', ok: false, err: '', players: [], seed: 0, cd: 0, inMatch: false, mm: null, party: null, pop: 0, sendT: 0, applying: false, mode: 'br' };
-  let MAPT = { th: null, pat: null, decor: [] };
+  const NET = { sock: null, id: null, name: '', ok: false, err: '', players: [], seed: 0, cd: 0, inMatch: false, mm: null, party: null, pop: 0, sendT: 0, applying: false, mode: 'br', leaderboard: null };
+  let MAPT = { th: null, pat: null, decor: [], sites: [] };
   function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   function seeded(seed, fn) { const o = Math.random; Math.random = mulberry(seed); try { return fn(); } finally { Math.random = o; } }
   let ZR = Math.random;
@@ -1032,8 +1164,10 @@
       const extra = ['ammo', 'med', 'armor', 'ammo', 'grenade', 'incend', 'flash', 'smoke', ...WEAPON_IDS.filter(k => k !== 'pistol')];
       const gren = ['grenade', 'incend', 'flash', 'smoke'];
       const items = [first, extra[Math.floor(Math.random() * extra.length)], Math.random() < .7 ? gren[Math.floor(Math.random() * gren.length)] : extra[Math.floor(Math.random() * extra.length)]];
+      if (Math.random() < 0.01) items.push('chance_token_unranked');
+      if (Math.random() < 0.01) items.push('chance_token_ranked');
       items.forEach((k, i) => {
-        const a = i / 3 * 6.283 + rnd(0, 1);
+        const a = i / items.length * 6.283 + rnd(0, 1);
         let x = c.x + Math.cos(a) * 30, y = c.y + Math.sin(a) * 30;
         if (inObs(x, y, 10, c.lv)) { x = c.x; y = c.y; }
         loot.push({ x, y, k, lv: c.lv || 0, bi: c.bi, id: 'c' + ci + '_' + i });
@@ -1065,7 +1199,7 @@
     const slots = bot ? [wk] : (SAVE.loadoutSlots || ['pistol']).filter(k => WP[k]).slice(0, 6);
     if (!slots.length) slots.push('pistol');
     const startWeapon = bot ? wk : (slots.includes(SAVE.loadout) ? SAVE.loadout : slots[0]);
-    const playerWs = Object.fromEntries(slots.map(k => [k, { mag: WP[k].mag, res: WP[k].mag * (bot ? 8 : 2) }]));
+    const playerWs = Object.fromEntries(slots.map(k => [k, { mag: weaponStats(k).mag, res: weaponStats(k).mag * (bot ? 8 : 2) }]));
     return { x, y, r: 14, hp: dd ? dd.hp : 100, mhp: dd ? dd.hp : 100, ar: dd ? dd.ar : 0, d: dd, a: rnd(0, 6.28), bot, name, cur: startWeapon,
       ws: playerWs, cd: 0, rl: 0, rlW: startWeapon, flash: 0,
       alive: true, kills: 0, tgt: null, aiT: rnd(0, .3), gx: x, gy: y, gT: 0, aimErr: 0,
@@ -1080,7 +1214,12 @@
     { n: 'Jungle de spores',   base: '#14201a', a: '#1e3226', b: '#0e1710', speck: '#5a8f52', tuft: '#5fa056', decor: ['tuft', 'tuft', 'tuft', 'rock', 'spore'] },
     { n: 'Désert de rouille',  base: '#2b2019', a: '#3d2c20', b: '#1f1610', speck: '#9a643c', tuft: '#9a7a4c', decor: ['rock', 'tuft', 'bone', 'rock', 'stain'] },
     { n: 'Plaine volcanique',  base: '#1e1716', a: '#2e201d', b: '#120d0d', speck: '#8a432e', tuft: '#74402e', decor: ['rock', 'rock', 'lava', 'stain'] },
-    { n: 'Zone industrielle',  base: '#1a1d20', a: '#252a2e', b: '#121517', speck: '#5d6870', tuft: '#5d6870', decor: ['plate', 'plate', 'rock', 'stain', 'bone'] }
+    { n: 'Zone industrielle',  base: '#1a1d20', a: '#252a2e', b: '#121517', speck: '#5d6870', tuft: '#5d6870', decor: ['plate', 'plate', 'rock', 'stain', 'bone'] },
+    { n: 'Ville abandonnée', base: '#242322', a: '#393735', b: '#171717', speck: '#77716a', tuft: '#77716a', decor: ['plate', 'rock', 'stain', 'bone'], site: 'ville' },
+    { n: 'Base militaire', base: '#20251d', a: '#303a29', b: '#141a13', speck: '#78805c', tuft: '#8b9564', decor: ['crate', 'barrel', 'plate', 'rock'], site: 'militaire' },
+    { n: 'Forêt radioactive', base: '#18221b', a: '#263b29', b: '#101710', speck: '#6f9b4e', tuft: '#83b45c', decor: ['tree', 'tree', 'spore', 'toxic'], site: 'radioactive' },
+    { n: 'Complexe industriel', base: '#202326', a: '#343b40', b: '#111619', speck: '#78848a', tuft: '#78848a', decor: ['plate', 'barrel', 'crate', 'stain'], site: 'industrie' },
+    { n: 'Bunker souterrain', base: '#191d22', a: '#2a3038', b: '#101317', speck: '#65717a', tuft: '#65717a', decor: ['plate', 'crate', 'rock', 'toxic'], site: 'bunker' }
   ];
   function buildGround(th, rg) {
     const S = 512, c = document.createElement('canvas'); c.width = c.height = S;
@@ -1118,11 +1257,31 @@
     return out;
   }
   function initGround() {
-    const chosenTheme = !ONLINE && SAVE.mode === 'train' ? THEMES[SAVE.map] : null;
+    const chosenTheme = !ONLINE ? THEMES[Math.min(SAVE.map, THEMES.length - 1)] : null;
     const th = chosenTheme || THEMES[Math.floor(Math.random() * THEMES.length)];
     const rg = mulberry(Math.floor(Math.random() * 1e9) + 1);
-    MAPT = { th, pat: buildGround(th, rg), decor: genDecor(th, rg) };
+    MAPT = { th, pat: buildGround(th, rg), decor: genDecor(th, rg), sites: [] };
   }
+  function addStrategicSites() {
+    const th = MAPT.th;
+    if (!th || !th.site) return;
+    const specs = {
+      ville: [{ n: 'CENTRE-VILLE', x: 900, y: 900 }, { n: 'STATION', x: 3500, y: 900 }, { n: 'HÔPITAL', x: 2200, y: 3500 }],
+      militaire: [{ n: 'QG MILITAIRE', x: 900, y: 900 }, { n: 'HANGARS', x: 3500, y: 900 }, { n: 'ARSENAL', x: 2200, y: 3500 }],
+      radioactive: [{ n: 'LABORATOIRE', x: 900, y: 900 }, { n: 'SERRE MUTANTE', x: 3500, y: 900 }, { n: 'RÉACTEUR', x: 2200, y: 3500 }],
+      industrie: [{ n: 'USINE', x: 900, y: 900 }, { n: 'RAFFINERIE', x: 3500, y: 900 }, { n: 'ENTREPÔTS', x: 2200, y: 3500 }],
+      bunker: [{ n: 'ENTRÉE BUNKER', x: 900, y: 900 }, { n: 'CENTRE DE COMMANDE', x: 3500, y: 900 }, { n: 'ARMURERIE', x: 2200, y: 3500 }]
+    };
+    for (const site of (specs[th.site] || [])) {
+      const x = site.x, y = site.y;
+      if (blds.some(b => x < b.x + b.w + 100 && x + 360 + 100 > b.x && y < b.y + b.h + 100 && y + 280 + 100 > b.y)) continue;
+      const first = blds.length;
+      addBuilding(x, y, 360, 280);
+      addBuilding(x + 410, y + 30, 190, 150);
+      MAPT.sites.push({ n: site.n, x, y, w: 600, h: 300, bi: first });
+    }
+  }
+
   function drawDecor(d, th) {
     const s = d.s;
     ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.a);
@@ -1135,6 +1294,10 @@
       case 'spore': ctx.globalAlpha = .18; ctx.fillStyle = '#8fe08a'; ctx.beginPath(); ctx.arc(0, 0, s * 1.6, 0, 6.283); ctx.fill(); ctx.globalAlpha = .6; ctx.beginPath(); ctx.arc(0, 0, 2, 0, 6.283); ctx.fill(); break;
       case 'lava': ctx.globalAlpha = .22; ctx.fillStyle = '#d4552a'; ctx.beginPath(); ctx.ellipse(0, 0, s * 1.8, s * .9, 0, 0, 6.283); ctx.fill(); ctx.globalAlpha = .3; ctx.fillStyle = '#ffb36b'; ctx.beginPath(); ctx.ellipse(0, 0, s * .8, s * .35, 0, 0, 6.283); ctx.fill(); break;
       case 'plate': ctx.globalAlpha = .22; ctx.strokeStyle = '#9aa7b0'; ctx.lineWidth = 1.5; ctx.strokeRect(-s * 1.4, -s, s * 2.8, s * 2); ctx.beginPath(); ctx.moveTo(-s * 1.4, 0); ctx.lineTo(s * 1.4, 0); ctx.stroke(); break;
+      case 'crate': ctx.globalAlpha = .45; ctx.fillStyle = '#8b7651'; ctx.fillRect(-s, -s, s * 2, s * 2); ctx.strokeStyle = '#c0a477'; ctx.strokeRect(-s, -s, s * 2, s * 2); ctx.beginPath(); ctx.moveTo(-s, -s); ctx.lineTo(s, s); ctx.moveTo(s, -s); ctx.lineTo(-s, s); ctx.stroke(); break;
+      case 'barrel': ctx.globalAlpha = .5; ctx.fillStyle = '#8a633e'; ctx.beginPath(); ctx.ellipse(0, 0, s * .75, s, 0, 0, 6.283); ctx.fill(); ctx.strokeStyle = '#c49a62'; ctx.stroke(); break;
+      case 'tree': ctx.globalAlpha = .45; ctx.fillStyle = '#0b100d'; ctx.beginPath(); ctx.arc(2, 3, s * 1.25, 0, 6.283); ctx.fill(); ctx.globalAlpha = .6; ctx.fillStyle = th.tuft; ctx.beginPath(); ctx.arc(0, 0, s, 0, 6.283); ctx.fill(); break;
+      case 'toxic': ctx.globalAlpha = .3; ctx.fillStyle = '#a4e34c'; ctx.beginPath(); ctx.arc(0, 0, s * 1.7, 0, 6.283); ctx.fill(); ctx.globalAlpha = .8; ctx.fillStyle = '#d8ff75'; ctx.font = 'bold ' + (s * 1.5) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('☢', 0, s * .5); break;
       default: ctx.globalAlpha = .35; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(0, 0, s * 1.6, s, 0, 0, 6.283); ctx.fill();
     }
     ctx.restore();
@@ -1144,8 +1307,11 @@
     const zr = () => ONLINE ? ZR() : Math.random();
     const nr = PH[Z.p], a = zr() * 6.283, off = Math.max(0, zone.r - nr) * (.2 + zr() * .7);
     Z.from = { cx: zone.cx, cy: zone.cy, r: zone.r };
-    Z.to = { cx: zone.cx + Math.cos(a) * off, cy: zone.cy + Math.sin(a) * off, r: nr };
-    Z.stage = 'wait'; Z.t = 24; Z.dur = 26;
+    // Le cercle cible reste dans les limites de la carte. En ligne, le hasard est
+    // déterministe grâce à la graine commune de la partie.
+    const maxShift = Math.max(0, MAP - nr);
+    Z.to = { cx: Math.max(nr, Math.min(maxShift, zone.cx + Math.cos(a) * off)), cy: Math.max(nr, Math.min(maxShift, zone.cy + Math.sin(a) * off)), r: nr };
+    Z.stage = 'wait'; Z.t = ZWAIT[Math.min(Z.p, ZWAIT.length - 1)]; Z.dur = ZDUR[Math.min(Z.p, ZDUR.length - 1)];
   }
 
   function onlineMode() { const n = NET.players.length, base = MODES[NET.mode] || MODES.br; return Object.assign({}, base, { n: 'En ligne', ent: n, zs: NET.mode === 'br' || !NET.mode ? (n <= 2 ? .35 : n <= 6 ? .65 : 1) : base.zs }); }
@@ -1157,6 +1323,7 @@
   }
   function initWorld() {
     const M0 = ONLINE ? onlineMode() : (MODES[SAVE.mode] || MODES.br);
+    G.zWave = SAVE.mode === 'zombie' && !ONLINE ? 1 : 0; G.zTimer = 0; G.airdropTimer = 35; G.airdropIndex = 0;
     N = M0.ent; R0 = Math.round(2450 * M0.zs); PH = PH0.map(v => Math.round(v * M0.zs));
     obs = []; blds = [];
     const nB = Math.max(10, Math.round(80 * M0.zs * M0.zs));
@@ -1174,11 +1341,17 @@
     }
     craters = Array.from({ length: 110 }, () => ({ x: rnd(0, MAP), y: rnd(0, MAP), r: rnd(30, 130) }));
     initGround();
-    zone = { cx: MAP / 2, cy: MAP / 2, r: R0 };
-    Z = { p: 0, stage: 'wait', t: 30, dur: 26, from: null, to: null };
-    Z.to = { cx: MAP / 2, cy: MAP / 2, r: R0 };
+    addStrategicSites();
+    // Point de départ légèrement variable à chaque partie, mais identique
+    // chez tous les joueurs d'un même salon grâce à init() et NET.seed.
+    const startA = rnd(0, Math.PI * 2), startR = rnd(0, 170);
+    const startX = MAP / 2 + Math.cos(startA) * startR;
+    const startY = MAP / 2 + Math.sin(startA) * startR;
+    zone = { cx: startX, cy: startY, r: R0 };
+    Z = { p: 0, stage: 'wait', t: ZWAIT[0], dur: ZDUR[0], from: null, to: null };
+    Z.to = { cx: startX, cy: startY, r: R0 };
     // première zone cible
-    const keep = Z.t; planNext(); Z.t = keep;
+    planNext();
     if (M0.noZone) { zone.r = 99999; Z.p = PH.length; Z.stage = 'off'; Z.to = { cx: MAP / 2, cy: MAP / 2, r: 99999 }; }
 
     ents = [];
@@ -1202,7 +1375,9 @@
     const pool = NAMES.slice().sort(() => Math.random() - .5);
     for (let i = 1; i < N; i++) {
       const dw = DIFF[SAVE.diff].wk, r = Math.random() * (dw[0] + dw[1] + dw[2]), wk = r < dw[0] ? 'pistol' : r < dw[0] + dw[1] ? 'rifle' : 'shotgun';
-      ents.push(mkEnt(spots[i].x, spots[i].y, true, pool[i - 1], wk));
+      const bot = mkEnt(spots[i].x, spots[i].y, true, pool[i - 1], wk);
+      if (SAVE.mode === 'zombie') { bot.zombie = true; bot.name = 'Infecté'; bot.hp = bot.mhp = 115; bot.ar = 0; bot.d = DIFF[0]; bot.cur = 'pistol'; bot.ws = { pistol: { mag: 0, res: 0 } }; bot.zAttack = rnd(.2, 1); }
+      ents.push(bot);
     }
     const fb = blds.filter(b => b.st).sort(() => Math.random() - .5);
     let nb = 1;
@@ -1229,7 +1404,9 @@
       const x = rnd(b.x + WT + 20, b.x + b.w - WT - 20), y = rnd(b.y + WT + 20, b.y + b.h - WT - 20);
       if (!inObs(x, y, 18, 1) && !(x < b.st.x + b.st.w + 24 && y < b.st.y + b.st.h + 24)) { loot.push({ x, y, k: upk[Math.floor(Math.random() * upk.length)], lv: 1, bi: blds.indexOf(b) }); break; }
     }
-    loot.forEach((l, i) => { l.id = 'w' + i; });
+    // Rareté des armes : tirage déterministe en ligne grâce à la génération de carte seedée.
+    const weaponRarity = () => { const r = Math.random(); return r < .62 ? 'common' : r < .88 ? 'rare' : r < .98 ? 'epic' : 'legendary'; };
+    loot.forEach((l, i) => { l.id = 'w' + i; if (WP[l.k]) l.rarity = weaponRarity(); });
     chests = [];
     const putChest = (x, y, lv, bi) => chests.push({ x, y, lv, bi, open: false });
     const crs = obs.filter(o => o.bi === undefined && !o.door).sort(() => Math.random() - .5);
@@ -1288,7 +1465,7 @@
 
   function fire(e) {
     if (!e.alive || e.cd > 0 || e.rl > 0) return;
-    const w = WP[e.cur], s = e.ws[e.cur];
+    const w = weaponStats(e.cur), s = e.ws[e.cur];
     if (s.mag <= 0) { reload(e); return; }
     s.mag--; e.cd = w.rate * (e.d ? e.d.cd : 1); e.flash = .06; e.shotT = 1.5;
     recordKillAction('shot', e, { weapon: e.cur, angle: e.a, x: e.x, y: e.y });
@@ -1304,9 +1481,10 @@
     if (s.mag <= 0) reload(e);
   }
   function reload(e) {
-    const w = WP[e.cur], s = e.ws[e.cur];
+    const w = weaponStats(e.cur), s = e.ws[e.cur];
     if (e.rl > 0 || s.mag >= w.mag || s.res <= 0) return;
     e.rl = w.rel; e.rlW = e.cur;
+    if (ONLINE && e === P()) netEmit('reload', { w: e.cur });
   }
   function switchTo(e, k) {
     if (!e.ws[k] || e.cur === k) return;
@@ -1334,11 +1512,17 @@
     hurtLocal(e, d, by);
   }
   function hurtLocal(e, d, by) {
-    if (!e.alive) return;
+    if (!e.alive || e.downed || (e.shieldUntil && Date.now() < e.shieldUntil)) return;
     if (e.ar > 0) { const a = Math.min(e.ar, d * .5); e.ar -= a; d -= a; }
     e.hp -= d;
     if (e === ents[0]) G.hurt = Math.min(.45, G.hurt + .12);
-    if (e.hp <= 0) kill(e, by);
+    if (e.hp <= 0) {
+      if (ONLINE && e === ents[0] && NET.mode === 'squad') {
+        e.downed = true; e.hp = 1; e.reviveProgress = 0;
+        if (NET.sock) NET.sock.emit('down');
+        toast('À TERRE · maintiens E près d’un coéquipier pendant 3 secondes');
+      } else kill(e, by);
+    }
   }
   function feed(text, me) {
     const d = document.createElement('div'); d.textContent = text; if (me) d.className = 'me';
@@ -1347,7 +1531,7 @@
   }
   function kill(e, by) {
     e.alive = false; e.hp = 0;
-    if (by && by !== e) by.kills++;
+    if (by && by !== e) { by.kills++; if(by===ents[0]) challengeAdvance('kills',1); }
     const alive = ents.filter(x => x.alive).length;
     feed(by && by !== e ? by.name + '  ›  ' + e.name : e.quit ? e.name + ' a quitté' : e.name + '  ›  la zone', by === ents[0]);
     const tag = 'd' + String(e.nid || NET.id || 'x').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), dl = [];
@@ -1364,6 +1548,7 @@
   function endGame(win) {
     if (G.over) return; G.over = true; G.win = win; G.endT = killReplay ? (KC_DURATION / 1000 + .35) : (win ? .8 : 1.2); if (win) G.place = 1;
     SAVE.games++; if (win) SAVE.wins++; SAVE.kills += ents[0].kills;
+    challengeAdvance('games',1); if(win) challengeAdvance('wins',1);
     const place = Math.max(1, G.place || (win ? 1 : N));
     // Récompenses XP selon la difficulté choisie.
     // Duel / entraînement : montant fixe par difficulté, versé uniquement en cas de victoire.
@@ -1378,7 +1563,11 @@
     } else if (win) {
       earned = duelWinXp[diffIndex];
     }
-    G.xpEarned = earned; SAVE.lastXp = earned; SAVE.xp += earned; persist();
+    G.xpEarned = earned; SAVE.lastXp = earned; SAVE.xp += earned;
+    // Progression du pass gratuit : toutes les parties comptent, classées ou non.
+    const bpMatchXp=40+(win?30:0)+(place===1?20:place<=3?10:0);
+    const bpKillXp=Math.min(50,Math.max(0,ents[0].kills||0)*5);
+    addBattlePassXp(bpMatchXp+bpKillXp); persist();
   }
 
   let toastT;
@@ -1389,6 +1578,7 @@
   // grenades trouvées dans les coffres / par terre : type du lanceur (grenades.js) + nom
   const GREN = { grenade: { t: 'lethal', n: 'mortelle' }, incend: { t: 'incend', n: 'incendiaire' }, flash: { t: 'flash', n: 'flash' }, smoke: { t: 'smoke', n: 'fumigène' } };
   function take(p, l) {
+    if (l.k === 'chance_token_unranked' || l.k === 'chance_token_ranked') { const kind=l.k==='chance_token_ranked'?'ranked':'unranked'; if(SAVE.battlePass.chanceUnlocked[kind]||SAVE.battlePass.chanceTokens[kind])return false; SAVE.battlePass.chanceTokens[kind]=1; persist(); renderChancePass(); toast(kind==='ranked'?'JETON PASS CHANCE CLASSÉ trouvé !':'JETON PASS CHANCE NON CLASSÉ trouvé !'); return true; }
     if (WP[l.k]) { SAVE.weapons[l.k] = (SAVE.weapons[l.k] || 0) + 1; persist(); }
     if (l.k === 'med') { if (p.hp >= 100) return false; p.hp = Math.min(100, p.hp + 35); toast('+ Soins'); return true; }
     if (l.k === 'armor') { if (p.ar >= 100) return false; p.ar = Math.min(100, p.ar + 50); toast("+ Plaque d'armure"); return true; }
@@ -1398,10 +1588,11 @@
       toast('+ Grenade ' + GREN[l.k].n);
       return true;
     }
+    const rarityNames = { common: 'COMMUNE', rare: 'RARE', epic: 'ÉPIQUE', legendary: 'LÉGENDAIRE' };
     if (p.ws[l.k]) { p.ws[l.k].res = Math.min(WP[l.k].mag * 6, p.ws[l.k].res + WP[l.k].mag); toast('+ Munitions ' + WP[l.k].n); return true; }
     if (Object.keys(p.ws).length >= 6) { toast('Inventaire plein : 6 armes maximum'); return false; }
-    p.ws[l.k] = { mag: WP[l.k].mag, res: WP[l.k].mag * 2 };
-    switchTo(p, l.k); toast('Arme : ' + WP[l.k].n); return true;
+    p.ws[l.k] = { mag: weaponStats(l.k).mag, res: weaponStats(l.k).mag * 2 };
+    switchTo(p, l.k); toast((rarityNames[l.rarity] ? rarityNames[l.rarity] + ' · ' : '') + WP[l.k].n); return true;
   }
 
   // ---- IA des bots : ils se comportent comme de vrais joueurs
@@ -1498,6 +1689,16 @@
 
   function ai(b, dt) {
     const D = b.d, tz = Z.to || zone;
+    // IA dédiée au mode Survie zombie : poursuite et attaque au contact, sans armes.
+    if (b.zombie && SAVE.mode === 'zombie' && !ONLINE) {
+      const target = ents[0];
+      if (!target || !target.alive) return;
+      const dx = target.x - b.x, dy = target.y - b.y, dist = Math.hypot(dx, dy) || 1;
+      b.a = Math.atan2(dy, dx); b.zAttack = Math.max(0, (b.zAttack || 0) - dt);
+      if (dist < 34) { if (b.zAttack <= 0) { hurt(target, 13, b); b.zAttack = 1.05; } }
+      else { b.x += dx / dist * 108 * dt; b.y += dy / dist * 108 * dt; collide(b); }
+      return;
+    }
     b.tm = (b.tm || 0) + dt; b.aiT -= dt;
     if (b.lastSeen) { b.lastSeen.t -= dt; if (b.lastSeen.t <= 0) b.lastSeen = null; }
     if (b.smokeKnown) { b.smokeKnown.t -= dt; if (b.smokeKnown.t <= 0) b.smokeKnown = null; }
@@ -1695,7 +1896,7 @@
     if (G.state !== 'play' || G.over) return;
     if (e.code === 'KeyR') reload(P());
     if (e.code === 'KeyF') knife();
-    if (e.code === 'KeyE') openNear();
+    if (e.code === 'KeyE') { if (ONLINE && NET.mode === 'squad') { /* la réanimation est gérée pendant la mise à jour */ } else openNear(); }
     if (e.code === 'KeyC') { e.preventDefault(); dropWeapon(P()); }
     if (/^Digit[1-6]$/.test(e.code)) { const k = ownedWeaponIds(P())[Number(e.code.slice(-1)) - 1]; if (k) switchTo(P(), k); }
   });
@@ -1767,8 +1968,28 @@
   // ---- mise à jour
 
 
+  function updateRevive(dt) {
+    if (!ONLINE || NET.mode !== 'squad' || !KEYS.KeyE || G.over) { G.reviveTarget = null; G.reviveProgress = 0; return; }
+    const p = ents[0];
+    if (!p || !p.alive || p.downed) return;
+    let target = null, best = 105;
+    for (const e of ents) if (e.rem && e.alive && e.downed && e.seen) {
+      const d = Math.hypot(e.x - p.x, e.y - p.y);
+      if (d < best) { best = d; target = e; }
+    }
+    if (!target) { G.reviveTarget = null; G.reviveProgress = 0; return; }
+    if (G.reviveTarget !== target.nid) { G.reviveTarget = target.nid; G.reviveProgress = 0; }
+    G.reviveProgress = (G.reviveProgress || 0) + dt;
+    if (G.reviveProgress >= 3) {
+      if (NET.sock) NET.sock.emit('revive', { t: target.nid });
+      G.reviveProgress = 0; G.reviveTarget = null; KEYS.KeyE = false;
+      toast('Tentative de réanimation envoyée');
+    }
+  }
+
   function update(dt) {
     const p = ents[0];
+    updateRevive(dt);
     G.time += dt;
     if (ONLINE) netStep(dt);
 
@@ -1791,6 +2012,21 @@
       b.roofA += ((inside ? 0 : 1) - b.roofA) * Math.min(1, dt * 7);
     }
 
+    // Largages aériens : même graine et même calendrier pour tous les clients en ligne.
+    if (!G.over && (G.airdropTimer -= dt) <= 0) {
+      G.airdropIndex = (G.airdropIndex || 0) + 1;
+      const dropNo = G.airdropIndex;
+      const seed = ONLINE ? ((NET.seed ^ (0x45d9f3b * dropNo)) | 0) : ((Math.floor(MAP) ^ (SAVE.games * 7919) ^ (dropNo * 104729)) | 0);
+      let point;
+      seeded(seed, () => { point = freePoint(R0 - 120); });
+      const pool = ['sniper_heavy', 'rifle_scar', 'shotgun_auto', 'dmr_scout', 'smg_vector'];
+      const weapon = pool[Math.abs(seed) % pool.length];
+      const drop = { x: point.x, y: point.y, k: weapon, rarity: 'legendary', id: 'airdrop-' + dropNo, airdrop: true, dropAt: G.time };
+      loot.push(drop);
+      G.airdropTimer = 100;
+      if (p && Math.hypot(p.x - drop.x, p.y - drop.y) < 1400) toast('Largage aérien repéré · fumée orange');
+    }
+
     // joueur
     if (p.alive && !G.over) {
       let mx = 0, my = 0;
@@ -1798,7 +2034,7 @@
       if (MV.down) my += 1;
       if (MV.left) mx -= 1;
       if (MV.right) mx += 1;
-      let l = Math.hypot(mx, my) || 1, sp = (KEYS.ShiftLeft || KEYS.ShiftRight) ? 300 : 215;
+      let l = Math.hypot(mx, my) || 1, sp = p.downed ? 58 : ((KEYS.ShiftLeft || KEYS.ShiftRight) ? 300 : 215);
       if (T.move) { mx = T.move.dx; my = T.move.dy; const m = Math.hypot(mx, my); l = 1; sp = m > 1.7 ? 300 : 215; if (m > 1) { mx /= m; my /= m; } if (m < .1) { mx = 0; my = 0; } }
       const wantSprint = sp > 250 && (mx !== 0 || my !== 0);
       if (p.exh && p.st > 25) p.exh = false;
@@ -1806,12 +2042,12 @@
       else { sp = Math.min(sp, 215); if (p.stD > 0) p.stD -= dt; else p.st = Math.min(100, p.st + 20 * dt); }
       p.sprint = sp > 250 && (mx !== 0 || my !== 0); p.noisy = p.sprint;
       p.x += mx / l * sp * dt; p.y += my / l * sp * dt; collide(p); p.sprint = false; useStairs(p);
-      if (T.aim) { const m = Math.hypot(T.aim.dx, T.aim.dy); if (m > .15) p.a = Math.atan2(T.aim.dy, T.aim.dx); if (m > .4) fire(p); }
-      else if (!touchMode) { p.a = Math.atan2(M.y - H / 2, M.x - W / 2);
+      if (!p.downed && T.aim) { const m = Math.hypot(T.aim.dx, T.aim.dy); if (m > .15) p.a = Math.atan2(T.aim.dy, T.aim.dx); if (m > .4) fire(p); }
+      else if (!touchMode && !p.downed) { p.a = Math.atan2(M.y - H / 2, M.x - W / 2);
       if (M.down) fire(p); }
       for (let i = loot.length - 1; i >= 0; i--) {
         const l2 = loot[i];
-        if ((l2.x - p.x) ** 2 + (l2.y - p.y) ** 2 < (p.r + 14) ** 2 && (l2.lv || 0) === (p.lv || 0) && (!p.lv || l2.bi === p.bi) && take(p, l2)) { loot.splice(i, 1); if (ONLINE && l2.id) netEmit('pk', { id: l2.id }); }
+        if ((l2.x - p.x) ** 2 + (l2.y - p.y) ** 2 < (p.r + 14) ** 2 && (l2.lv || 0) === (p.lv || 0) && (!p.lv || l2.bi === p.bi) && take(p, l2)) { loot.splice(i, 1); if (ONLINE && l2.id) netEmit('pk', { id: l2.id, x: Math.round(p.x), y: Math.round(p.y), k: l2.k }); }
       }
     }
 
@@ -1825,9 +2061,31 @@
       if (e.shotT > 0) e.shotT -= dt;
       if (e.rl > 0) {
         e.rl -= dt;
-        if (e.rl <= 0) { const s = e.ws[e.rlW], w = WP[e.rlW], t = Math.min(w.mag - s.mag, s.res); s.mag += t; s.res -= t; }
+        if (e.rl <= 0) { const s = e.ws[e.rlW], w = weaponStats(e.rlW), t = Math.min(w.mag - s.mag, s.res); s.mag += t; s.res -= t; }
       }
       if (Math.hypot(e.x - zone.cx, e.y - zone.cy) > zone.r) hurt(e, ZDMG[Math.min(Z.p, ZDMG.length - 1)] * dt, null);
+    }
+
+    // Gestion des vagues du mode Survie zombie (solo uniquement).
+    if (!ONLINE && SAVE.mode === 'zombie' && p.alive && !G.over) {
+      const remaining = ents.filter(e => e.zombie && e.alive).length;
+      if (remaining === 0) {
+        if (!G.zTimer) { G.zTimer = 3.5; toast('Vague terminée · prépare-toi !'); }
+        G.zTimer -= dt;
+        if (G.zTimer <= 0) {
+          G.zWave = (G.zWave || 1) + 1; G.zTimer = 0;
+          const count = Math.min(18, 3 + G.zWave * 2);
+          for (let i = 0; i < count; i++) {
+            let pt = freePoint();
+            for (let tries = 0; tries < 35 && Math.hypot(pt.x - p.x, pt.y - p.y) < 420; tries++) pt = freePoint();
+            const z = mkEnt(pt.x, pt.y, true, 'Infecté', 'pistol');
+            z.zombie = true; z.hp = z.mhp = 105 + G.zWave * 9; z.ar = 0;
+            z.d = DIFF[0]; z.cur = 'pistol'; z.ws = { pistol: { mag: 0, res: 0 } }; z.zAttack = rnd(.2, 1);
+            ents.push(z);
+          }
+          toast('VAGUE ' + G.zWave + ' · ' + count + ' infectés');
+        }
+      } else G.zTimer = 0;
     }
 
     // balles
@@ -1896,6 +2154,11 @@
     for (let y = Math.floor(cy / 100) * 100; y < cy + H; y += 100) if (y >= 0 && y <= MAP) { ctx.moveTo(Math.max(0, cx), y); ctx.lineTo(Math.min(MAP, cx + W), y); }
     ctx.stroke();
     ctx.strokeStyle = '#3b454b'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, MAP, MAP);
+    for (const site of MAPT.sites || []) {
+      if (site.x > cx + W || site.x + site.w < cx || site.y > cy + H || site.y + site.h < cy) continue;
+      ctx.save(); ctx.globalAlpha = .9; ctx.fillStyle = 'rgba(7,10,12,.72)'; ctx.fillRect(site.x + 8, site.y - 24, Math.min(210, site.n.length * 9 + 20), 22);
+      ctx.fillStyle = '#e7c77b'; ctx.font = '700 13px "IBM Plex Mono", monospace'; ctx.textAlign = 'left'; ctx.fillText(site.n, site.x + 16, site.y - 9); ctx.restore();
+    }
     for (const b of blds) {
       if (b.x > cx + W || b.x + b.w < cx || b.y > cy + H || b.y + b.h < cy) continue;
       ctx.fillStyle = (p.lv && blds[p.bi] === b) ? '#252f36' : '#1e2528'; ctx.fillRect(b.x, b.y, b.w, b.h);
@@ -1955,6 +2218,27 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     for (const l of loot) {
       if (!lootVis(l, p) || l.x < cx - 30 || l.x > cx + W + 30 || l.y < cy - 30 || l.y > cy + H + 30) continue;
+      if (l.airdrop) {
+        const age = G.time - (l.dropAt || 0);
+        ctx.save(); ctx.translate(l.x, l.y);
+        if (age < 10) {
+          const sway = Math.sin(age * 2.1) * 5;
+          ctx.strokeStyle = '#e9e4d7'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-17 + sway, -22); ctx.quadraticCurveTo(0, -49, 17 + sway, -22); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(-17 + sway, -22); ctx.lineTo(-8, -3); ctx.moveTo(17 + sway, -22); ctx.lineTo(8, -3); ctx.stroke();
+          ctx.fillStyle = '#d6d0c3'; ctx.beginPath(); ctx.arc(sway, -25, 21, Math.PI, 0); ctx.fill(); ctx.strokeStyle = '#fff0d0'; ctx.stroke();
+        }
+        ctx.fillStyle = '#b66b24'; ctx.fillRect(-15, -3, 30, 22); ctx.strokeStyle = '#ffb34e'; ctx.lineWidth = 3; ctx.strokeRect(-15, -3, 30, 22);
+        ctx.fillStyle = '#402b1a'; ctx.fillRect(-3, -3, 6, 22); ctx.fillRect(-15, 5, 30, 5);
+        ctx.restore();
+        ctx.fillStyle = '#ffad45'; ctx.font = '700 11px "IBM Plex Mono", monospace'; ctx.fillText(age < 10 ? 'LARGAGE EN DESCENTE' : 'CAISSE LÉGENDAIRE', l.x, l.y - 36);
+        if (age >= 10) { ctx.strokeStyle = 'rgba(255,155,55,.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(l.x, l.y, 27 + Math.sin(t * 4) * 3, 0, 6.283); ctx.stroke(); }
+        continue;
+      }
+      if (l.k === 'chance_token_unranked' || l.k === 'chance_token_ranked') {
+        const ranked=l.k==='chance_token_ranked', col=ranked?'#ff5368':'#54c8ff';
+        ctx.save(); ctx.translate(l.x,l.y+Math.sin(t*3+l.x)*2); ctx.shadowColor=col; ctx.shadowBlur=18; ctx.fillStyle=ranked?'#57202a':'#173e58'; ctx.strokeStyle=col; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,13+Math.sin(t*4)*1.5,0,6.283); ctx.fill(); ctx.stroke(); ctx.fillStyle=col; ctx.font='900 13px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(ranked?'C':'N',0,1); ctx.restore();
+        ctx.font='700 10px "IBM Plex Mono", monospace'; ctx.textAlign='center'; ctx.fillStyle=col; ctx.fillText(ranked?'JETON PASS CLASSÉ · 1 %':'JETON PASS NON CLASSÉ · 1 %',l.x,l.y-25); ctx.textAlign='left'; continue;
+      }
       if (l.k === 'armor') {
         ctx.save(); ctx.translate(l.x, l.y + Math.sin(t * 2 + l.x) * 1.5);
         ctx.beginPath(); ctx.moveTo(-12, -12); ctx.lineTo(12, -12); ctx.lineTo(12, 2); ctx.quadraticCurveTo(12, 12, 0, 17); ctx.quadraticCurveTo(-12, 12, -12, 2); ctx.closePath();
@@ -1966,9 +2250,16 @@
         continue;
       }
       const c = lootCol(l.k), pulse = 14 + Math.sin(t * 3 + l.x) * 2;
-      ctx.strokeStyle = c; ctx.globalAlpha = .45; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(l.x, l.y, pulse, 0, 6.283); ctx.stroke();
-      ctx.globalAlpha = 1; ctx.fillStyle = c; ctx.font = '700 13px "IBM Plex Mono", monospace'; ctx.fillText(lootGly(l.k), l.x, l.y + 1);
-      if ((l.x - p.x) ** 2 + (l.y - p.y) ** 2 < 110 * 110 && (WP[l.k] || GREN[l.k])) { ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.fillText(WP[l.k] ? WP[l.k].n.toUpperCase() : ('GRENADE ' + GREN[l.k].n).toUpperCase(), l.x, l.y - 24); }
+      const rarityColors = { common: '#aeb7bd', rare: '#55a9ff', epic: '#bd75ff', legendary: '#ff9e38' };
+      const rarityColor = l.rarity && rarityColors[l.rarity];
+      ctx.strokeStyle = rarityColor || c; ctx.globalAlpha = rarityColor ? .9 : .45; ctx.lineWidth = rarityColor ? 3 : 1.5; ctx.beginPath(); ctx.arc(l.x, l.y, pulse, 0, 6.283); ctx.stroke();
+      ctx.globalAlpha = 1; ctx.fillStyle = rarityColor || c; ctx.font = '700 13px "IBM Plex Mono", monospace'; ctx.fillText(lootGly(l.k), l.x, l.y + 1);
+      if ((l.x - p.x) **  2 + (l.y - p.y) ** 2 < 110 * 110 && (WP[l.k] || GREN[l.k])) {
+        ctx.font = '500 10px "IBM Plex Mono", monospace';
+        ctx.fillStyle = rarityColor || c;
+        const tier = l.rarity ? ({ common: 'COMMUNE', rare: 'RARE', epic: 'ÉPIQUE', legendary: 'LÉGENDAIRE' }[l.rarity] + ' · ') : '';
+        ctx.fillText(tier + (WP[l.k] ? WP[l.k].n.toUpperCase() : ('GRENADE ' + GREN[l.k].n).toUpperCase()), l.x, l.y - 24);
+      }
     }
 
     ctx.lineCap = 'round';
@@ -1985,20 +2276,23 @@
       const wt = WP[e.cur] ? WP[e.cur].type : 'pistol';
       const metal = wt === 'sniper' ? '#9bb6c8' : wt === 'shotgun' ? '#a77b58' : wt === 'rifle' ? '#8e9a91' : '#b9b8ad';
       ctx.fillStyle = '#111719'; ctx.fillRect(5, -3, wt === 'sniper' ? 31 : wt === 'shotgun' ? 27 : 23, 6);
-      ctx.fillStyle = metal; ctx.fillRect(5, -3.2, wt === 'sniper' ? 25 : wt === 'shotgun' ? 21 : 17, 5.4);
+      const myWeaponSkin = e === ents[0] ? WEAPON_SKINS.find(x=>x.id===SAVE.weaponSkin) : null;
+      ctx.fillStyle = myWeaponSkin ? myWeaponSkin.color : metal; ctx.fillRect(5, -3.2, wt === 'sniper' ? 25 : wt === 'shotgun' ? 21 : 17, 5.4);
       ctx.fillStyle = '#252b2d'; ctx.fillRect(10, -5, wt === 'pistol' ? 11 : 15, 2.2);
       ctx.fillStyle = '#15191b'; ctx.fillRect(12, 2, 5, 7);
       ctx.fillStyle = '#d4a537'; ctx.fillRect(wt === 'sniper' ? 20 : 15, -2.2, 2, 1.2);
       if (wt === 'sniper') { ctx.fillStyle = '#26343b'; ctx.fillRect(15, -6, 9, 3); ctx.fillRect(18, -8, 3, 7); }
       if (wt === 'shotgun') { ctx.fillStyle = '#60452f'; ctx.fillRect(5, -2, 7, 4); }
       if (wt === 'rifle') { ctx.fillStyle = '#252b2d'; ctx.fillRect(18, 2, 4, 5); ctx.fillRect(24, -4, 5, 2); }
-      ctx.fillStyle = e.bot ? '#a8443a' : e.rem ? '#9a5ad0' : '#6fc3d9'; ctx.beginPath(); ctx.arc(0, 0, e.r, 0, 6.283); ctx.fill();
+      const mySkin = e === ents[0] ? CHARACTER_SKINS.find(x=>x.id===SAVE.characterSkin) : null;
+      ctx.fillStyle = e.zombie ? '#79a84f' : e.bot ? '#a8443a' : e.rem ? '#9a5ad0' : (mySkin ? mySkin.color : '#6fc3d9'); ctx.beginPath(); ctx.arc(0, 0, e.r, 0, 6.283); ctx.fill();
       ctx.strokeStyle = '#0c0e0f'; ctx.lineWidth = 2.5; ctx.stroke();
-      ctx.fillStyle = e.bot ? '#2a1210' : e.rem ? '#1d1030' : '#0f2a33'; ctx.beginPath(); ctx.arc(3, 0, 6, 0, 6.283); ctx.fill();
+      ctx.fillStyle = e.zombie ? '#1b2b13' : e.bot ? '#2a1210' : e.rem ? '#1d1030' : '#0f2a33'; ctx.beginPath(); ctx.arc(3, 0, 6, 0, 6.283); ctx.fill();
       if (e.ar > 0) { ctx.strokeStyle = '#9fd4e6'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, e.r + 1, -1.1, 1.1); ctx.stroke(); }
       if (e.kflash > 0) { ctx.strokeStyle = '#e7e1d3'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, e.r + 16, -.8, .8); ctx.stroke(); }
       if (e.flash > 0) { ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(28, 0, 6 + Math.random() * 3, 0, 6.283); ctx.fill(); }
       ctx.restore();
+      if (e.downed) { ctx.strokeStyle = '#e7a34b'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 7, 0, 6.283); ctx.stroke(); ctx.font = '700 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#ffbf69'; ctx.fillText('À TERRE', e.x, e.y - 30); }
       if (e.rem) { ctx.font = '500 10px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#c9a8ee'; ctx.fillText(e.name, e.x, e.y - 26); }
       if (e.bot && e.hp < e.mhp) {
         ctx.fillStyle = '#0c0e0f'; ctx.fillRect(e.x - 16, e.y - 26, 32, 5);
@@ -2053,7 +2347,7 @@
   }
 
   function hud() {
-    const p = ents[0], w = WP[p.cur], s = p.ws[p.cur];
+    const p = ents[0], w = weaponStats(p.cur), s = p.ws[p.cur];
     $('hp').style.width = p.hp + '%'; $('hpn').textContent = Math.ceil(p.hp);
     $('hpbar').classList.toggle('low', p.hp < 30);
     $('ar').style.width = p.ar + '%'; $('arn').textContent = Math.ceil(p.ar);
@@ -2080,6 +2374,8 @@
     else if (Z.stage === 'shrink') { $('zlabel').textContent = 'Zone en contraction'; $('ztime').textContent = fmt(Z.t); }
     else if (Z.stage === 'off') { $('zlabel').textContent = 'Zone désactivée'; $('ztime').textContent = '—'; }
     else { $('zlabel').textContent = 'Dernière zone'; $('ztime').textContent = '—'; }
+    if (Z.stage === 'wait' && Z.p < PH.length) $('zlabel').textContent = 'Phase ' + (Z.p + 1) + ' · contraction dans';
+    else if (Z.stage === 'shrink') $('zlabel').textContent = 'Phase ' + (Z.p + 1) + ' · zone en contraction';
   }
 
   function showOver() {
@@ -2247,7 +2543,14 @@
   let LOBBY_TAB = SAVE.online ? 'online' : 'offline';
   function renderLobby() {
     const s = SAVE;
-    $('lstats').innerHTML = '<div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
+    const lvl=playerLevel(), nextXp=levelFloorXp(lvl+1), baseXp=levelFloorXp(lvl), progress=Math.max(0,Math.min(100,(s.xp-baseXp)/Math.max(1,nextXp-baseXp)*100));
+    $('lstats').innerHTML = '<div class="label">Niveau<b>' + lvl + '</b></div><div class="label">XP disponible<b>' + s.xp + '</b></div><div class="label">Parties<b>' + s.games + '</b></div><div class="label">Victoires<b>' + s.wins + '</b></div><div class="label">Éliminations<b>' + s.kills + '</b></div>';
+    if (!$('progressCard')) $('lstats').insertAdjacentHTML('afterend','<div class="progress-card" id="progressCard"></div>');
+    $('progressCard').innerHTML='<div class="row"><b>NIVEAU '+lvl+'</b><span>'+s.xp+' / '+nextXp+' XP</span></div><div class="progress-track"><i style="width:'+progress.toFixed(1)+'%"></i></div><small>Prochaine récompense : '+(lvl<3?'skin Désert':lvl<4?'skin Cobalt':lvl<6?'skin Forêt':lvl<8?'skin Toxique':lvl<10?'skin Opérateur Élite':lvl<12?'skin Or':'progression continue')+'</small>';
+    if (!$('challengePanel')) $('progressCard').insertAdjacentHTML('afterend','<div class="social-box" id="challengePanel"></div>');
+    renderChallenges();
+    if (!$('chancePassPanel')) $('challengePanel').insertAdjacentHTML('afterend','<div class="social-box" id="chancePassPanel"></div><div class="social-box" id="battlePassPanel"></div>');
+    renderChancePass(); renderBattlePass();
     $('armory').innerHTML = WEAPON_IDS.filter(k => s.weapons[k] || s.unlocked[k]).map(k => {
       const w = WP[k], n = s.weapons[k] || 0;
       return '<div class=\"wcard\">' + weaponSvg(k) + '<div><b>' + w.n + '</b><small>Dégâts ' + w.dmg + (w.pel > 1 ? ' ×' + w.pel : '') + ' · Chargeur ' + w.mag + '</small><small>' + (Math.round(10 / w.rate) / 10) + ' tirs/s · portée ' + w.rng + '</small></div><div class=\"cnt\">' + (s.unlocked[k] ? 'Débloquée' : 'Récoltée ×' + n) + '</div></div>';
@@ -2267,8 +2570,10 @@
       return cards ? '<section class="shop-category"><h3>' + title + '</h3>' + cards + '</section>' : '';
     }).join('');
     $('shop').insertAdjacentHTML('afterbegin', '<p class="note">Équipe jusqu’à 6 armes. Pendant la partie, utilise la molette pour passer de l’une à l’autre. Emplacements : ' + s.loadoutSlots.length + '/6.</p>');
+    $('shop').insertAdjacentHTML('beforeend','<section class="shop-category"><h3>Skins de personnage</h3><div class="cosmetic-grid">'+CHARACTER_SKINS.map(x=>'<div class="cosmetic"><b>'+x.name+'</b><div class="skin-swatch" style="background:'+x.color+'"></div><small>'+(x.pass?'Récompense du pass gratuit':('Niveau requis : '+x.level))+'</small><button type="button" class="small" data-character-skin="'+x.id+'" '+(!skinUnlocked(CHARACTER_SKINS,x.id)?'disabled':'')+'>'+(s.characterSkin===x.id?'Équipé':!skinUnlocked(CHARACTER_SKINS,x.id)?'À débloquer':'Équiper')+'</button></div>').join('')+'</div></section><section class="shop-category"><h3>Skins d’armes</h3><div class="cosmetic-grid">'+WEAPON_SKINS.map(x=>'<div class="cosmetic"><b>'+x.name+'</b><div class="skin-swatch" style="background:'+x.color+'"></div><small>'+(x.pass?'Récompense du pass gratuit':('Niveau requis : '+x.level))+'</small><button type="button" class="small" data-weapon-skin="'+x.id+'" '+(!skinUnlocked(WEAPON_SKINS,x.id)?'disabled':'')+'>'+(s.weaponSkin===x.id?'Équipé':!skinUnlocked(WEAPON_SKINS,x.id)?'À débloquer':'Équiper')+'</button></div>').join('')+'</div></section>');
+    $('shop').insertAdjacentHTML('beforeend','<section class="shop-category"><h3>Accessoires d’armes</h3><p class="note">Choisis une arme débloquée, puis équipe ou retire ses accessoires. Les effets s’appliquent aux tirs et rechargements de cette arme.</p><div class="cosmetic-grid">'+SAVE.loadoutSlots.filter(k=>WP[k]).map(k=>'<div class="cosmetic"><b>'+WP[k].n+'</b>'+ATTACHMENTS.map(a=>{const on=weaponAttachments(k).includes(a.id);return '<div class="note">'+a.name+' · '+a.desc+'<br><button type="button" class="small" data-attachment="'+k+'|'+a.id+'">'+(on?'Retirer':'Équiper')+'</button></div>';}).join('')+'</div>').join('')+'</div></section>');
     $('modes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-m="' + k + '" aria-pressed="' + (s.mode === k) + '"><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
-    $('mapPicker').hidden = s.mode !== 'train';
+    $('mapPicker').hidden = false;
     $('maps').innerHTML = THEMES.map((th, i) => '<button type="button" class="chip" data-map="' + i + '" aria-pressed="' + (s.map === i) + '">' + th.n + '</button>').join('');
     $('diffs').innerHTML = DIFF.map((d, i) => '<button type="button" class="chip" data-d="' + i + '" aria-pressed="' + (s.diff === i) + '">' + d.n + '</button>').join('');
     $('dnote').textContent = DIFF[s.diff].n + ' : ' + DIFF[s.diff].desc;
@@ -2290,11 +2595,15 @@
   }
   $('shop').addEventListener('click', e => {
     const buy = e.target.closest('[data-buy]'), equip = e.target.closest('[data-equip]');
-    const slot = e.target.closest('[data-slot]');
+    const slot = e.target.closest('[data-slot]'), charSkin=e.target.closest('[data-character-skin]'), weaponSkin=e.target.closest('[data-weapon-skin]'), attachment=e.target.closest('[data-attachment]');
+    if (attachment) { const [k,id]=attachment.dataset.attachment.split('|'); if (!WP[k] || !ATTACHMENTS.some(a=>a.id===id) || !SAVE.loadoutSlots.includes(k)) return; const list=weaponAttachments(k).slice(); const at=list.indexOf(id); if(at>=0) list.splice(at,1); else { if(list.length>=3){toast('3 accessoires maximum par arme');return;} list.push(id); } SAVE.weaponAttachments[k]=list; persist(); renderLobby(); toast((at>=0?'Accessoire retiré':'Accessoire équipé')+' : '+ATTACHMENTS.find(a=>a.id===id).name); return; }
+    if (charSkin) { const id=charSkin.dataset.characterSkin; if (!skinUnlocked(CHARACTER_SKINS,id)) return; SAVE.characterSkin=id; persist(); renderLobby(); toast('Skin personnage équipé'); return; }
+    if (weaponSkin) { const id=weaponSkin.dataset.weaponSkin; if (!skinUnlocked(WEAPON_SKINS,id)) return; SAVE.weaponSkin=id; persist(); renderLobby(); toast('Skin d’arme équipé'); return; }
     if (buy) { const k = buy.dataset.buy, price = SHOP_PRICES[k]; if (!WP[k] || SAVE.unlocked[k] || !price || SAVE.xp < price) return; SAVE.xp -= price; SAVE.unlocked[k] = true; if (SAVE.loadoutSlots.length < 6) { SAVE.loadoutSlots.push(k); SAVE.loadout = k; } persist(); renderLobby(); toast(WP[k].n + (SAVE.loadoutSlots.includes(k) ? ' achetée et ajoutée aux emplacements' : ' débloquée')); }
     else if (slot) { const k = slot.dataset.slot; if (!SAVE.unlocked[k]) return; if (SAVE.loadoutSlots.includes(k)) { if (k === 'pistol') return; SAVE.loadoutSlots = SAVE.loadoutSlots.filter(x => x !== k); if (SAVE.loadout === k) SAVE.loadout = SAVE.loadoutSlots[0] || 'pistol'; toast(WP[k].n + ' retirée'); } else { if (SAVE.loadoutSlots.length >= 6) return; SAVE.loadoutSlots.push(k); toast(WP[k].n + ' ajoutée aux emplacements'); } persist(); renderLobby(); }
     else if (equip) { const k = equip.dataset.equip; if (!SAVE.unlocked[k]) return; SAVE.loadout = k; persist(); renderLobby(); toast(WP[k].n + ' équipée'); }
   });
+  document.addEventListener('click', e => { const b=e.target.closest('[data-bp-claim]'); if(b) claimBattlePassTier(Number(b.dataset.bpClaim)); const u=e.target.closest('[data-chance-unlock]'); if(u) unlockChancePass(u.dataset.chanceUnlock); const c=e.target.closest('[data-chance-claim]'); if(c) claimChancePassTier(c.dataset.chanceClaim,Number(c.dataset.tier)); });
   $('redeemBtn').addEventListener('click', async () => {
     const code = $('rewardCode').value.trim();
     const msg = $('redeemMsg');
@@ -2381,12 +2690,16 @@
     s.on('disconnect', () => { NET.ok = false; NET.mm = null; NET.party = null; if (NET.inMatch && !G.over) toast('Connexion perdue'); renderNet(); });
     s.on('connect_error', () => { NET.err = 'Connexion au serveur impossible.'; renderNet(); });
     s.on('pop', q => { NET.pop = q.n; renderNet(); });
+    s.on('ranked-info', q => { NET.rank = q; renderNet(); });
+    s.on('ranked-error', q => { NET.err = q && q.message || 'Mode classé indisponible.'; renderNet(); });
+    s.on('ranked-result', q => { const mine = q && Array.isArray(q.results) && q.results.find(x => x.id === NET.id); if (mine) toast('Classement : ' + (mine.delta > 0 ? '+' : '') + mine.delta + ' · ' + mine.rating + ' points · ' + mine.division); });
+    s.on('ranked-leaderboard', q => { NET.leaderboard = q; renderNet(); });
     s.on('mm', m => { NET.mm = m; renderNet(); });
     s.on('party', q => { NET.party = q; renderNet(); });
     s.on('party-mode', q => { if (NET.party) { NET.party.mode = q.mode; renderNet(); } });
     s.on('match-start', startOnline);
     s.on('st', onSt); s.on('shot', onShot); s.on('door', onDoor); s.on('pk', onPk); s.on('wd', onWeaponDrop); s.on('ch', onCh);
-    s.on('dead', onDead); s.on('hit', onHit); s.on('gone', onGone); s.on('match-end', onEnd);
+    s.on('dead', onDead); s.on('hit', onHit); s.on('downed', onDowned); s.on('revived', onRevived); s.on('gone', onGone); s.on('match-end', onEnd);
   }
   function renderNet() {
     if ($('onl').hidden) return;
@@ -2394,9 +2707,9 @@
     st.textContent = NET.err ? NET.err : NET.ok ? 'Connecté au serveur · ' + NET.pop + ' joueur' + (NET.pop > 1 ? 's' : '') + ' en ligne' : 'Connexion au serveur…';
     st.style.color = NET.err ? '#ff8c78' : '';
     const inParty = !!NET.party, searching = !!NET.mm, off = !NET.ok;
-    for (const id of ['nfind', 'ncreate', 'njoin']) $(id).disabled = off || inParty || searching;
+    for (const id of ['nfind', 'nfindranked', 'ncreate', 'njoin']) $(id).disabled = off || inParty || searching;
     $('nsearch').hidden = !searching;
-    if (searching) $('nsn').textContent = NET.mm.n + ' joueur' + (NET.mm.n > 1 ? 's' : '') + ' en recherche · ' + (NET.mm.eta != null ? 'départ dans ' + NET.mm.eta + ' s' : 'il faut au moins ' + NET.mm.min + ' joueurs pour démarrer');
+    if (searching) $('nsn').textContent = (NET.mm.mode === 'ranked' ? 'Classé · ' + (NET.mm.rating ?? 'cote…') + ' pts · ' : 'Classique · ') + NET.mm.n + ' joueur' + (NET.mm.n > 1 ? 's' : '') + ' compatibles · ' + (NET.mm.eta != null ? 'départ dans ' + NET.mm.eta + ' s' : 'il faut au moins ' + NET.mm.min + ' joueurs compatibles');
     $('nparty').hidden = !inParty;
     if (inParty) {
       $('npcode').textContent = NET.party.code;
@@ -2404,11 +2717,24 @@
       for (const m of NET.party.members) { const d = document.createElement('div'); d.textContent = (m.id === NET.party.host ? '★ ' : '· ') + m.name + (m.id === NET.id ? ' (toi)' : ''); pl.appendChild(d); }
       const host = NET.party.host === NET.id;
       const curMode = NET.party.mode || 'br';
-      $('npmodes').innerHTML = Object.keys(MODES).map(k => '<button type="button" class="opt" data-pm="' + k + '" aria-pressed="' + (curMode === k) + '" ' + (host ? '' : 'disabled') + '><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
+      $('npmodes').innerHTML = Object.keys(MODES).filter(k => k !== 'zombie' && k !== 'train').map(k => '<button type="button" class="opt" data-pm="' + k + '" aria-pressed="' + (curMode === k) + '" ' + (host ? '' : 'disabled') + '><b>' + MODES[k].n + '</b><span>' + MODES[k].desc + '</span></button>').join('');
       $('nstart').hidden = !host; $('nstart').disabled = NET.party.members.length < 2; $('nwait').hidden = host;
+      if (NET.rank) {
+        let r = $('rankCard'); if (!r) { r = document.createElement('div'); r.id = 'rankCard'; r.className = 'note'; $('nparty').appendChild(r); }
+        if (!NET.rank.eligible) r.textContent = 'Mode classé : connecte-toi à un compte pour participer.';
+        else {
+          const lines = ['Classement général : ' + NET.rank.division + ' · ' + NET.rank.rating + ' pts · ' + NET.rank.games + ' parties', 'Saison ' + NET.rank.season + ' : ' + (NET.rank.seasonRating || 0) + ' pts · ' + (NET.rank.seasonDivision || 'Bronze')];
+          if (Array.isArray(NET.rank.seasonRewards) && NET.rank.seasonRewards.length) lines.push('Récompenses de saison : ' + NET.rank.seasonRewards.map(x => x.season + ' — ' + x.title + ' (' + x.division + ')').join(' · '));
+          if (Array.isArray(NET.rank.seasonHistory) && NET.rank.seasonHistory.length) lines.push('Historique : ' + NET.rank.seasonHistory.map(x => x.season + ' : ' + x.division + ', ' + x.rating + ' pts, ' + x.games + ' parties').join(' · '));
+          r.textContent = lines.join('\n'); r.style.whiteSpace = 'pre-line';
+        }
+      }
+      let lb = $('rankBoardBtn'); if (!lb) { lb = document.createElement('button'); lb.type = 'button'; lb.id = 'rankBoardBtn'; lb.className = 'opt'; lb.textContent = 'Voir le top 10 de la saison'; lb.addEventListener('click', () => NET.sock && NET.sock.emit('ranked-leaderboard')); $('nparty').appendChild(lb); }
+      let board = $('rankBoard'); if (NET.leaderboard) { if (!board) { board = document.createElement('div'); board.id = 'rankBoard'; board.className = 'note'; $('nparty').appendChild(board); } const q = NET.leaderboard; board.textContent = q.error || ('Saison ' + q.season + ' · Top 10 : ' + (q.rows || []).map((r, i) => (i + 1) + '. ' + r.username + ' — ' + r.rating + ' pts').join(' | ')); }
     }
   }
-  $('nfind').addEventListener('click', () => { if (!NET.ok) return; NET.mm = { n: 1, min: 2, eta: null }; NET.sock.emit('mm-join', { name: nameOf() }); renderNet(); });
+  $('nfind').addEventListener('click', () => { if (!NET.ok) return; NET.mm = { n: 1, min: 2, eta: null, mode: 'br' }; NET.sock.emit('mm-join', { name: nameOf(), mode: 'br' }); renderNet(); });
+  $('nfindranked').addEventListener('click', () => { if (!NET.ok) return; if (!AUTH.user) { NET.err = 'Connecte-toi à ton compte pour jouer en classé.'; renderNet(); return; } NET.mm = { n: 1, min: 2, eta: null, mode: 'ranked' }; NET.sock.emit('mm-join', { name: nameOf(), mode: 'ranked' }); renderNet(); });
   $('ncancel').addEventListener('click', () => { if (NET.sock) NET.sock.emit('mm-leave'); NET.mm = null; renderNet(); });
   $('ncreate').addEventListener('click', () => { if (!NET.ok) return; NET.sock.emit('party-create', { name: nameOf() }, r => { if (r && r.ok) NET.party = r.party; else { NET.err = (r && r.error) || 'Impossible de créer le salon.'; } renderNet(); }); });
   $('njoin').addEventListener('click', () => {
@@ -2448,13 +2774,13 @@
     const p = ents[0];
     if (NET.sendT <= 0 && p.alive && NET.sock && NET.ok) {
       NET.sendT = .066;
-      NET.sock.volatile.emit('st', { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, a: Math.round(p.a * 100) / 100, l: p.lv || 0, b: p.lv ? p.bi : -1, c: p.cur, r: p.noisy ? 1 : 0, ar: Math.round(p.ar) });
+      NET.sock.volatile.emit('st', { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, d: p.downed ? 1 : 0, a: Math.round(p.a * 100) / 100, l: p.lv || 0, b: p.lv ? p.bi : -1, c: p.cur, r: p.noisy ? 1 : 0, ar: Math.round(p.ar) });
     }
   }
   function onSt(m) {
     if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return;
     if (!e.seen) { e.x = m.x; e.y = m.y; e.a = m.a; e.seen = true; }
-    e.tx = m.x; e.ty = m.y; e.ta = m.a; e.lv = m.l; e.bi = m.b;
+    e.tx = m.x; e.ty = m.y; e.ta = m.a; e.downed = !!m.d; e.lv = m.l; e.bi = m.b;
     if (WP[m.c]) { e.cur = m.c; if (!e.ws[m.c]) e.ws[m.c] = { mag: 9, res: 9 }; }
     e.ar = m.ar; e.noisy = !!m.r;
   }
@@ -2477,6 +2803,20 @@
     loot.push({ x: m.x, y: m.y, k: m.k, lv: m.lv ? 1 : 0, bi: Number.isInteger(m.bi) ? m.bi : -1, id: m.id });
   }
   function onCh(m) { if (!NET.inMatch || !m) return; const c = chests[m.i]; if (c && !c.open) openChest(c, m.s, true); }
+  function onDowned(m) {
+    if (!NET.inMatch || !m) return;
+    const e = remById(m.i); if (!e || !e.alive) return;
+    e.downed = true; e.hp = 1;
+    if (e === ents[0]) toast('À TERRE · maintiens E près d’un coéquipier pour être réanimé');
+    else feed(e.name + ' est à terre · réanime-le !', false);
+  }
+  function onRevived(m) {
+    if (!NET.inMatch || !m) return;
+    const e = remById(m.i); if (!e || !e.alive) return;
+    e.downed = false; e.hp = 35; e.ar = Math.max(e.ar || 0, 10); e.shieldUntil = Date.now() + 2500;
+    if (e === ents[0]) toast('Réanimé · 35 PV');
+    else feed(e.name + ' a été réanimé', false);
+  }
   function onDead(m) {
     if (!NET.inMatch || !m) return; const e = remById(m.i); if (!e || !e.alive) return;
     e.dropsIn = (m.dr || []).map(d => ({ x: d.x, y: d.y, k: d.k, lv: d.lv ? 1 : 0, bi: d.bi, id: d.id }));
