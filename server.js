@@ -492,6 +492,10 @@ app.post("/api/user/data", async (req, res) => {
         games: Number.isFinite(Number(bodyData.games)) ? Math.max(0, Number(bodyData.games)) : (data.games || 0),
         wins: Number.isFinite(Number(bodyData.wins)) ? Math.max(0, Number(bodyData.wins)) : (data.wins || 0),
         kills: Number.isFinite(Number(bodyData.kills)) ? Math.max(0, Number(bodyData.kills)) : (data.kills || 0),
+        characterSkin: (['standard','desert','forest','elite'].includes(bodyData.characterSkin) || (['bp_urban','bp_hazmat','bp_shadow'].includes(bodyData.characterSkin) && Array.isArray(bodyData.battlePass?.cosmetics) && bodyData.battlePass.cosmetics.includes(bodyData.characterSkin))) ? bodyData.characterSkin : (data.characterSkin || 'standard'),
+        weaponSkin: (['standard','cobalt','toxic','gold'].includes(bodyData.weaponSkin) || (['bp_retrovirus','bp_cryo','bp_apocalypse'].includes(bodyData.weaponSkin) && Array.isArray(bodyData.battlePass?.cosmetics) && bodyData.battlePass.cosmetics.includes(bodyData.weaponSkin))) ? bodyData.weaponSkin : (data.weaponSkin || 'standard'),
+        weaponAttachments: (bodyData.weaponAttachments && typeof bodyData.weaponAttachments === 'object' && !Array.isArray(bodyData.weaponAttachments)) ? Object.fromEntries(Object.entries(bodyData.weaponAttachments).filter(([k,v]) => ['pistol','pistol_mk2','pistol_heavy','pistol_silenced','rifle','rifle_burst','rifle_scar','rifle_aug','rifle_lmg','smg_vector','smg_mp5','shotgun','shotgun_auto','shotgun_slug','shotgun_tactical','sniper','sniper_heavy','dmr_scout','sniper_dragunov'].includes(k) && Array.isArray(v)).map(([k,v]) => [k,[...new Set(v.filter(x => ['optic','suppressor','extended','grip','quickmag'].includes(x)))].slice(0,3)])) : (data.weaponAttachments || {}),
+        battlePass: (bodyData.battlePass && typeof bodyData.battlePass === "object" && !Array.isArray(bodyData.battlePass)) ? { season: 'S1-2026', xp: Math.max(0, Math.min(3000, Math.floor(Number(bodyData.battlePass.xp) || 0))), claimed: Array.isArray(bodyData.battlePass.claimed) ? [...new Set(bodyData.battlePass.claimed.filter(n => Number.isInteger(n) && n >= 1 && n <= 30))] : [], titles: Array.isArray(bodyData.battlePass.titles) ? [...new Set(bodyData.battlePass.titles.filter(x => typeof x === 'string').slice(0,30))] : [], cosmetics: Array.isArray(bodyData.battlePass.cosmetics) ? [...new Set(bodyData.battlePass.cosmetics.filter(x => ['bp_urban','bp_retrovirus','bp_hazmat','bp_cryo','bp_shadow','bp_apocalypse'].includes(x)))].slice(0,6) : [], chanceTokens: { unranked: Math.min(1,Math.max(0,Number(bodyData.battlePass.chanceTokens?.unranked)||0)), ranked: Math.min(1,Math.max(0,Number(bodyData.battlePass.chanceTokens?.ranked)||0)) }, chanceUnlocked: { unranked: !!bodyData.battlePass.chanceUnlocked?.unranked, ranked: !!bodyData.battlePass.chanceUnlocked?.ranked }, chanceClaimed: { unranked: Array.isArray(bodyData.battlePass.chanceClaimed?.unranked) ? [...new Set(bodyData.battlePass.chanceClaimed.unranked.filter(n => Number.isInteger(n) && n >= 1 && n <= 30))] : [], ranked: Array.isArray(bodyData.battlePass.chanceClaimed?.ranked) ? [...new Set(bodyData.battlePass.chanceClaimed.ranked.filter(n => Number.isInteger(n) && n >= 1 && n <= 30))] : [] } } : (data.battlePass || { season: 'S1-2026', xp: 0, claimed: [], titles: [], cosmetics: [] }),
         social: (user.data && user.data.social && typeof user.data.social === "object") ? user.data.social : (data.social || { friends: [], incoming: [], outgoing: [] }),
         redeemedCodes: Array.isArray(user.data && user.data.redeemedCodes) ? user.data.redeemedCodes : (Array.isArray(data.redeemedCodes) ? data.redeemedCodes : [])
       };
@@ -573,6 +577,28 @@ const onlineApi = require("./online")(io, {
   getAccount: socket => {
     const session = sessions.get(getCookie({ headers: socket.request.headers }, "zm_session"));
     return session && session.expiresAt > Date.now() ? session.username : null;
+  },
+  getRank: async username => {
+    const user = await findUser(String(username || "").toLowerCase());
+    return user && user.data && user.data.ranked ? user.data.ranked : { rating: 1000, games: 0, wins: 0 };
+  },
+  saveRank: async (username, ranked) => {
+    const key = String(username || "").toLowerCase();
+    const user = await findUser(key);
+    if (!user) return false;
+    await saveUserData(user.usernameKey, { ...(user.data || {}), ranked });
+    return true;
+  },
+  getLeaderboard: async seasonId => {
+    let rows = [];
+    if (!useSupabase) rows = [...users.values()];
+    else rows = await supabaseRequest("zm_users", { query: "?select=username,data&limit=1000" });
+    return rows.map(u => ({ username: u.username, ranked: u.data && u.data.ranked || {} }))
+      .filter(u => u.username && (seasonId ? u.ranked.seasonId === seasonId : true))
+      .map(u => ({ username: String(u.username).slice(0, 16), rating: Math.max(0, Number(seasonId ? u.ranked.seasonRating : u.ranked.rating) || 0), games: Math.max(0, Number(u.ranked.games) || 0), wins: Math.max(0, Number(u.ranked.wins) || 0) }))
+      .filter(u => u.rating > 0)
+      .sort((a, b) => b.rating - a.rating || b.wins - a.wins || a.username.localeCompare(b.username))
+      .slice(0, 10);
   }
 });
 
