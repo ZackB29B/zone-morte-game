@@ -313,6 +313,107 @@
   .challenge-row>div{flex:1;min-width:0}.challenge-row b{display:block}.challenge-row small{display:block;color:var(--muted);margin:3px 0 6px}.challenge-row strong{font-size:10px;letter-spacing:.08em;color:var(--brass);white-space:nowrap}
 
 
+
+  /* Direction artistique lobby : centre de commandement tactique */
+  #lobby {
+    align-items:flex-start;
+    padding:clamp(14px,2.8vw,34px);
+    background:
+      radial-gradient(ellipse at 12% 8%,rgba(83,125,133,.18),transparent 32%),
+      radial-gradient(ellipse at 88% 18%,rgba(190,139,62,.13),transparent 30%),
+      linear-gradient(135deg,rgba(5,10,13,.96),rgba(12,19,23,.97) 48%,rgba(8,12,15,.98));
+    scrollbar-color:#58666a #10171b;
+  }
+  #lobby:before {
+    content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;
+    background-image:linear-gradient(rgba(185,205,202,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(185,205,202,.08) 1px,transparent 1px);
+    background-size:42px 42px;
+    mask-image:linear-gradient(to bottom,black,transparent 90%);
+  }
+  #lobby .lobby {position:relative;z-index:1;width:min(1240px,100%);gap:16px;margin:auto;}
+  #lobby .lhead {
+    position:relative;padding:14px 20px;border:1px solid #53656a;border-radius:12px;
+    background:linear-gradient(110deg,rgba(18,30,35,.97),rgba(24,39,44,.94) 62%,rgba(62,48,31,.88));
+    box-shadow:0 16px 42px #0007,inset 0 1px #ffffff0b;
+  }
+  #lobby .lhead:after {content:"SECURE CHANNEL  //  BASTION-09";position:absolute;right:18px;top:8px;color:#91a2a3;font:9px var(--mono);letter-spacing:.16em;opacity:.7}
+  #lobby .lhead h2 {margin-top:3px;font-size:clamp(48px,7vw,76px);letter-spacing:.035em;text-shadow:0 5px 25px #000b}
+  #lobby .lhead .tag {font-size:10px;color:#e0bd76;letter-spacing:.24em}
+  #lobby .lstats {gap:10px;margin-top:8px}
+  #lobby .lstats>div {min-width:94px;padding:8px 12px;border:1px solid #52636a;border-radius:7px;background:#0d171bcc}
+  #lobby .lstats .label {font-size:9px;color:#9eb3b7;letter-spacing:.13em}
+  #lobby .lstats b {font-size:29px;color:#f0e8d7}
+  #lobby #auser {padding:8px 10px;border:1px solid #53636b;border-radius:7px;background:#101a1e;color:#b9c8c8}
+  #lobby #auser b {color:#e8c77f}
+  #lobby .lobby-hero {
+    min-height:184px;padding:clamp(20px,3vw,32px);border:1px solid #65777b;border-radius:12px;
+    background:linear-gradient(90deg,rgba(11,23,28,.98),rgba(24,43,48,.84) 56%,rgba(62,49,32,.72)),
+      radial-gradient(ellipse at 82% 50%,#c18a4544,transparent 45%);
+    box-shadow:0 18px 38px #0006,inset 0 1px #ffffff12;
+  }
+  #lobby .lobby-hero:before {right:5%;bottom:3px;color:#e4c27a17;font-size:clamp(42px,8vw,92px);letter-spacing:.16em}
+  #lobby .lobby-hero:after {right:13%;font-size:clamp(120px,18vw,205px);color:#e4c27a1c;text-shadow:0 0 38px #d5a74a20}
+  #lobby .lobby-hero .hero-tag {color:#e9c779;font-size:10px;letter-spacing:.22em}
+  #lobby .lobby-hero h3 {font-size:clamp(32px,4.5vw,46px);letter-spacing:.045em;margin-bottom:5px}
+  #lobby .lobby-hero p {color:#c1cecc;max-width:570px;font-size:12px}
+  #lobby .lobby-hero .hero-mark {border-radius:5px;background:#d5ad6817;box-shadow:0 0 28px #d5ad6810;font-size:10px}
+  #lobby .lobby-nav {gap:7px;padding:7px;border:1px solid #35474e;border-radius:9px;background:rgba(10,18,22,.88);box-shadow:0 8px 24px #0004}
+  #lobby .lobby-nav button {position:relative;min-height:43px;border-radius:5px;border-color:#40545b;background:linear-gradient(180deg,#23343a,#18252a);font:600 11px var(--mono);letter-spacing:.055em;padding:9px 14px;transition:background .18s,border-color .18s,transform .18s}
+  #lobby .lobby-nav button:hover {background:linear-gradient(180deg,#34494f,#203238);border-color:#b99555;transform:translateY(-1px)}
+  #lobby .cols {grid-template-columns:minmax(0,1fr);gap:16px}
+  #lobby .cols>section {position:relative;gap:13px;padding:18px;border:1px solid #40535a;border-radius:10px;background:linear-gradient(150deg,rgba(25,39,44,.97),rgba(12,21,25,.97));box-shadow:0 14px 32px #0005,inset 0 1px #ffffff09}
+  #lobby .cols>section>h3 {font-size:27px;letter-spacing:.08em}
+  #lobby .cols>section .label {color:#9db0b4;letter-spacing:.15em}
+  #lobby .operator-card {min-height:340px;background:radial-gradient(ellipse at 50% 32%,#b28a4930,transparent 46%),linear-gradient(155deg,#263a40,#101a1f)!important}
+  #lobby .operator-stage {min-height:190px;border-color:#53686d;border-radius:7px;background:radial-gradient(ellipse at 50% 80%,#c89c4c20,transparent 58%),linear-gradient(180deg,#253a4080,#0d171dcc)}
+  #lobby .operator-silhouette {filter:drop-shadow(0 10px 18px #0009);transform:scale(1.08)}
+  #lobby .operator-meta {color:#e1c98f;font-size:10px;letter-spacing:.08em}
+  #lobby .loadout-summary span {border-color:#40565e;border-radius:4px;background:#0d191e;color:#c6d3d1}
+  #lobby .cols .opt {border:1px solid #3c5159;border-left:3px solid #9a7946;border-radius:5px;background:linear-gradient(105deg,#23373d,#17252a);transition:border-color .18s,background .18s,transform .18s}
+  #lobby .cols .opt:hover {border-color:#b99454;background:linear-gradient(105deg,#30474d,#1b2b30);transform:translateX(2px)}
+  #lobby .cols .opt[aria-pressed="true"],#lobby .cols .chip[aria-pressed="true"] {border-color:#d4ad62;background:linear-gradient(105deg,#70552b55,#24363b);box-shadow:inset 0 0 0 1px #d4ad6230}
+  #lobby .chip {border-radius:5px;border-color:#3e535a;background:#132126;color:#d4dfdc;font-size:11px;padding:10px 7px}
+  #lobby .chip:hover {border-color:#a88b58;background:#26383d}
+  #lobby .in,#lobby .music-select {min-height:42px;border-radius:5px;border-color:#455a61;background:#0b1519;color:#f0e8d7}
+  #lobby .in::placeholder {color:#718185}
+  #lobby .social-box,#lobby #nplist {border-color:#40545b;border-radius:7px;background:rgba(9,18,22,.72)}
+  #lobby .social-box h4 {font-size:21px}
+  #lobby .social-user {border-color:#3d5158;border-radius:5px;background:#142329}
+  #lobby .modes {position:relative;gap:10px;padding:12px;border:1px solid #53656a;border-radius:9px;background:linear-gradient(100deg,#1b2b30,#101a1e);box-shadow:0 12px 30px #0006}
+  #lobby #play {min-width:210px;min-height:60px;border-radius:6px;border:1px solid #f0d18a;background:linear-gradient(180deg,#f0cb78,#c18a3d);box-shadow:0 4px 0 #755126,0 9px 22px #0007,inset 0 1px #fff8;font-size:27px;letter-spacing:.18em;transition:transform .16s,filter .16s,box-shadow .16s}
+  #lobby #play:hover {filter:brightness(1.12);transform:translateY(-2px);box-shadow:0 6px 0 #755126,0 13px 26px #0008,inset 0 1px #fff8}
+  #lobby button.sec {border-radius:5px;border-color:#52636a;background:#142126;color:#cbd6d3;font-size:15px;letter-spacing:.08em;padding:8px 13px}
+  #lobby button.sec:hover {border-color:#b18c4f;background:#24363b;color:#fff0d0}
+  #lobby .note {color:#aab9b8;opacity:1}
+  #lobby .progress-card,#lobby .pass-hub {border-radius:8px;border-color:#4c6066;background:linear-gradient(145deg,#1b2c31,#101a1e)}
+  #lobby .music-track {border-radius:5px;border-color:#40545b;background:#15242a}
+  #lobby .music-track:hover {border-color:#b18c4f;background:#20343a}
+  #lobby :focus-visible {outline:2px solid #e4bf70;outline-offset:3px}
+  @media(max-width:760px) {
+    #lobby {padding:12px 10px}
+    #lobby .lobby {gap:12px}
+    #lobby .lhead {padding:15px;gap:10px}
+    #lobby .lhead:after {display:none}
+    #lobby .lstats>div {min-width:82px;padding:7px 9px}
+    #lobby .lobby-hero {min-height:150px;padding:18px}
+    #lobby .lobby-hero:before {font-size:40px}
+    #lobby .cols {grid-template-columns:minmax(0,1fr);gap:12px}
+    #lobby .operator-stage {min-height:145px}
+    #lobby .lobby-nav button {min-width:calc(50% - 5px);font-size:10px}
+    #lobby .modes {align-items:stretch}
+    #lobby #play {width:100%;min-width:0}
+    #lobby .modes .sec {flex:1}
+  }
+  @media(max-width:420px) {
+    #lobby .lstats {width:100%;justify-content:space-between}
+    #lobby .lstats>div {flex:1;min-width:0}
+    #lobby .lobby-nav button {min-width:100%;}
+    #lobby .cols>section {padding:13px}
+    #lobby .chips {gap:6px}
+    #lobby .music-select {max-width:100%}
+  }
+  @media(prefers-reduced-motion:reduce) {#lobby *,#lobby *:before,#lobby *:after {transition:none!important;animation:none!important}}
+
 </style>
 </head>
 <body>
@@ -407,11 +508,6 @@
         <button type="button" class="sec" data-n="1">Multijoueur</button>
       </nav>
       <div class="cols">
-        <section class="operator-card">
-          <div><div class="tag">TON OPÉRATEUR</div><h3 id="operatorName">Survivant</h3><p class="note">Prépare ton apparence et tes armes de départ avant le déploiement.</p></div>
-          <div class="operator-stage" aria-label="Aperçu 2D de ton opérateur"><div class="operator-silhouette"></div></div>
-          <div><div class="operator-meta"><span id="operatorSkinName">Skin standard</span><span id="operatorLevel">NIVEAU 1</span></div><div class="loadout-summary" id="loadoutSummary"></div><button type="button" class="sec small" data-n="2" style="width:100%;margin-top:10px">Personnaliser l'opérateur</button></div>
-        </section>
         <section>
           <h3>Créer une partie</h3>
           <div class="label">Connexion</div>
@@ -2570,11 +2666,6 @@
     renderChallenges();
     if (!$('passHub')) $('challengePanel').insertAdjacentHTML('afterend','<section class="pass-hub" id="passHub"><div class="pass-hub-head"><div><h3>Centre des passes</h3><p>Trois parcours séparés · choisis ta progression et récupère tes récompenses</p></div><b class="note">SAISON 1 · 30 PALIERS</b></div><div class="pass-tabs" role="tablist" aria-label="Parcours de récompenses"><button type="button" class="pass-tab" data-pass-tab="free" role="tab" aria-selected="true">PASS GRATUIT<small>Accessible à tous</small></button><button type="button" class="pass-tab" data-pass-tab="unranked" role="tab" aria-selected="false">PASS CHANCE · NON CLASSÉ<small>Jeton bleu · 1 % par coffre</small></button><button type="button" class="pass-tab" data-pass-tab="ranked" role="tab" aria-selected="false">PASS CHANCE · CLASSÉ<small>Jeton rouge · 1 % par coffre</small></button></div><div class="pass-panel" id="battlePassPanel" role="tabpanel"></div><div class="pass-panel" id="chancePassPanel" role="tabpanel" hidden></div></section>');
     renderChancePass(); renderBattlePass(); applyPassTab();
-    const equippedSkin=CHARACTER_SKINS.find(x=>x.id===s.characterSkin);
-    $('operatorSkinName').textContent=equippedSkin ? equippedSkin.name : 'Standard';
-    $('operatorLevel').textContent='NIVEAU '+lvl;
-    $('operatorName').textContent=AUTH.user || 'Survivant';
-    $('loadoutSummary').innerHTML=(s.loadoutSlots||['pistol']).filter(k=>WP[k]).slice(0,6).map(k=>'<span>'+WP[k].n+'</span>').join('') || '<span>Pistolet</span>';
     const shopGroups = [
       ['pistol', 'Pistolets'], ['rifle', 'Fusils d’assaut'], ['smg', 'Mitraillettes'],
       ['shotgun', 'Fusils à pompe'], ['sniper', 'Snipers']
